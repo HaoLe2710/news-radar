@@ -21,6 +21,8 @@ type RssItem = {
   "media:content"?: unknown;
 };
 
+const MAX_ITEMS_PER_SOURCE = 15;
+
 const parser = new XMLParser({
   ignoreAttributes: false,
   trimValues: true,
@@ -128,7 +130,7 @@ async function ingestNews(env: AppEnv) {
 
       const statements: D1PreparedStatement[] = [];
 
-      for (const item of items.slice(0, 15)) {
+      for (const item of items.slice(0, MAX_ITEMS_PER_SOURCE)) {
         const title = text(item.title);
         const link = text(item.link);
 
@@ -213,40 +215,44 @@ export default {
     if (url.pathname === "/api/news") {
       const region = url.searchParams.get("region") ?? "all";
       const category = url.searchParams.get("category") ?? "all";
+      const q = (url.searchParams.get("q") ?? "").trim().slice(0, 100);
 
-      const limit = Math.min(
-        Math.max(Number(url.searchParams.get("limit")) || 20, 1),
-        50
-      );
+      const rawPage = Number(url.searchParams.get("page") ?? 1);
+      const page = Number.isFinite(rawPage)
+        ? Math.min(10000, Math.max(1, Math.floor(rawPage))) : 1;
+      const rawSize = Number(url.searchParams.get("pageSize") ?? url.searchParams.get("limit") ?? 20);
+      const pageSize = Number.isFinite(rawSize)
+        ? Math.min(50, Math.max(1, Math.floor(rawSize))) : 20;
+      const offset = (page - 1) * pageSize;
 
-      const { results } = await env.DB.prepare(
-        `SELECT
-           a.id,
-           a.title,
-           a.url,
-           a.summary,
-           a.image_url,
-           a.published_at,
-           s.name AS source,
-           s.region,
-           c.slug AS category
-         FROM articles a
-         JOIN news_sources s ON a.source_id = s.id
-         JOIN categories c ON s.category_id = c.id
-         WHERE (? = 'all' OR s.region = ?)
-           AND (? = 'all' OR c.slug = ?)
-         ORDER BY COALESCE(a.published_at, a.created_at) DESC
-         LIMIT ?`
-      ).bind(
-        region, region,
-        category, category,
-        Math.floor(limit)
-      ).all();
+      const where = `FROM articles a
+        JOIN news_sources s ON a.source_id = s.id
+        JOIN categories c ON s.category_id = c.id
+        WHERE (? = 'all' OR s.region = ?)
+          AND (? = 'all' OR c.slug = ?)
+          AND (? = '' OR INSTR(LOWER(a.title), LOWER(?)) > 0
+            OR INSTR(LOWER(COALESCE(a.summary, '')), LOWER(?)) > 0
+            OR INSTR(LOWER(s.name), LOWER(?)) > 0)`;
+      const args = [region, region, category, category, q, q, q, q];
+      const [countResult, articleResult] = await Promise.all([
+        env.DB.prepare(`SELECT COUNT(*) AS total ${where}`)
+          .bind(...args).first<{ total: number }>(),
+        env.DB.prepare(`SELECT
+          a.id, a.title, a.url, a.summary, a.image_url,
+          a.published_at, s.name AS source, s.region, c.slug AS category
+          ${where}
+          ORDER BY COALESCE(a.published_at, a.created_at) DESC, a.id DESC
+          LIMIT ? OFFSET ?`)
+          .bind(...args, pageSize, offset).all(),
+      ]);
 
-      return Response.json(
-        { data: results, count: results?.length ?? 0 },
-        { headers }
-      );
+      const total = countResult?.total ?? 0;
+      const data = articleResult.results ?? [];
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
+      return Response.json({
+        data, count: data.length, total, page, pageSize, totalPages,
+        hasNext: page < totalPages,
+      }, { headers });
     }
 
     return Response.json(
