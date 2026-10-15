@@ -7,6 +7,7 @@ type Article = {
   title: string;
   url: string;
   summary: string | null;
+  image_url: string | null;
   published_at: string | null;
   source: string;
   region: "vn" | "world";
@@ -189,6 +190,10 @@ export default function Home() {
             <div className="section-heading"><span>01 / TIÊU ĐIỂM</span><span>SELECTED STORIES</span></div>
             <section className="lead-layout" aria-label="Tin nổi bật">
               <article className="lead-story">
+                {featured.image_url ? (
+                  <img className="lead-photo" src={featured.image_url} alt="" loading="eager"
+                    onError={(event) => { event.currentTarget.style.display = "none"; }} />
+                ) : null}
                 <div className="lead-decor" aria-hidden="true"><span>RADAR</span><span>●</span></div>
                 <div className="lead-content">
                   <div className="meta-row"><RegionLabel region={featured.region} /><span>{categoryName(featured.category)}</span></div>
@@ -218,6 +223,10 @@ export default function Home() {
             <div className="news-grid">
               {rest.map((article, index) => (
                 <article className="news-card" key={article.id}>
+                  {article.image_url ? (
+                    <img className="card-photo" src={article.image_url} alt="" loading="lazy"
+                      onError={(event) => { event.currentTarget.style.display = "none"; }} />
+                  ) : null}
                   <div className="card-topline"><span>{String(index + 4).padStart(2, "0")}</span><RegionLabel region={article.region} /></div>
                   <p className="card-category">{categoryName(article.category)}</p>
                   <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>

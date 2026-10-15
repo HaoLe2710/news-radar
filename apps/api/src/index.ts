@@ -16,10 +16,13 @@ type RssItem = {
   link?: unknown;
   description?: unknown;
   pubDate?: unknown;
+  enclosure?: unknown;
+  "media:thumbnail"?: unknown;
+  "media:content"?: unknown;
 };
 
 const parser = new XMLParser({
-  ignoreAttributes: true,
+  ignoreAttributes: false,
   trimValues: true,
   processEntities: true,
 });
@@ -52,6 +55,42 @@ function parseDate(value: unknown): string | null {
   return Number.isNaN(timestamp)
     ? null
     : new Date(timestamp).toISOString();
+}
+
+function urlFromMedia(node: unknown, requireImageType = false): string | null {
+  for (const candidate of Array.isArray(node) ? node : [node]) {
+    if (!candidate || typeof candidate !== "object") continue;
+    const attrs = candidate as Record<string, unknown>;
+    const type = text(attrs["@_type"]);
+    if (requireImageType && !type.startsWith("image/")) continue;
+    if (type && !type.startsWith("image/") && attrs["@_medium"] !== "image") continue;
+    const image = cleanImageUrl(attrs["@_url"]);
+    if (image) return image;
+  }
+  return null;
+}
+
+function cleanImageUrl(raw: unknown): string | null {
+  const value = text(raw).trim().replace(/&amp;/g, "&");
+  if (!value) return null;
+  try {
+    const url = new URL(value.startsWith("//") ? "https:" + value : value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+function extractImage(item: RssItem): string | null {
+  const media = urlFromMedia(item["media:thumbnail"])
+    ?? urlFromMedia(item["media:content"])
+    ?? urlFromMedia(item.enclosure, true);
+  if (media) return media;
+
+  // Some RSS feeds (including VnExpress) embed an <img> inside description HTML.
+  const html = text(item.description);
+  const match = html.match(/<img\b[^>]*?\s(?:src|data-src)\s*=\s*["']([^"']+)["']/i);
+  return cleanImageUrl(match?.[1]);
 }
 
 async function ingestNews(env: AppEnv) {
@@ -108,24 +147,28 @@ async function ingestNews(env: AppEnv) {
 
         statements.push(
           env.DB.prepare(
-            `INSERT OR IGNORE INTO articles
-              (source_id, title, url, summary, published_at)
-             VALUES (?, ?, ?, ?, ?)`
+            `INSERT INTO articles
+              (source_id, title, url, summary, published_at, image_url)
+             VALUES (?, ?, ?, ?, ?, ?)
+             ON CONFLICT(url) DO UPDATE SET
+               image_url = excluded.image_url
+             WHERE articles.image_url IS NULL AND excluded.image_url IS NOT NULL`
           ).bind(
             source.id,
             title,
             validUrl,
             cleanSummary(item.description),
-            parseDate(item.pubDate)
+            parseDate(item.pubDate),
+            extractImage(item)
           )
         );
       }
 
-      let inserted = 0;
+      let savedOrBackfilled = 0;
 
       if (statements.length > 0) {
         const results = await env.DB.batch(statements);
-        inserted = results.reduce(
+        savedOrBackfilled = results.reduce(
           (total, result) => total + (result.meta.changes ?? 0),
           0
         );
@@ -136,7 +179,7 @@ async function ingestNews(env: AppEnv) {
       ).bind(new Date().toISOString(), source.id).run();
 
       console.log(
-        `${source.name}: fetched=${items.length}, inserted=${inserted}`
+        `${source.name}: fetched=${items.length}, saved_or_backfilled=${savedOrBackfilled}`
       );
     } catch (error) {
       console.error(`Failed: ${source.name}`, error);
@@ -182,6 +225,7 @@ export default {
            a.title,
            a.url,
            a.summary,
+           a.image_url,
            a.published_at,
            s.name AS source,
            s.region,
