@@ -1,0 +1,16 @@
+{
+	"name": "new-radar-api",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-10-15",
+	"observability": {
+		"enabled": true,
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "news-radar-db",
+			"database_id": "6903819b-6427-4d79-a8b3-3c4d05f6994a",
+			"remote": false
+		}
+	],
+}
