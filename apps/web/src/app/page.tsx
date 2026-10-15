@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 type Article = {
   id: number;
@@ -14,16 +14,19 @@ type Article = {
   category: string;
 };
 
-type NewsResponse = { data: Article[]; count: number };
+type NewsResponse = { data: Article[]; count: number; total: number; page: number; pageSize: number; totalPages: number };
 type Region = "all" | "vn" | "world";
 
 const API_URL = (process.env.NEXT_PUBLIC_NEWS_API_URL ?? "http://127.0.0.1:8787").replace(/\/$/, "");
+const PAGE_SIZE = 20;
 const CATEGORY_LABELS: Record<string, string> = {
   all: "Tất cả lĩnh vực",
   general: "Tin tổng hợp",
   technology: "Công nghệ",
   business: "Kinh tế",
   science: "Khoa học",
+  sports: "Thể thao",
+  education: "Giáo dục",
 };
 
 function formatDate(value: string | null): string {
@@ -50,12 +53,21 @@ function RegionLabel({ region }: { region: Article["region"] }) {
 export default function Home() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [region, setRegion] = useState<Region>("all");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [category, setCategory] = useState("all");
   const [keyword, setKeyword] = useState("");
+  const [debouncedKeyword, setDebouncedKeyword] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setDebouncedKeyword(keyword), 350);
+    return () => clearTimeout(timeout);
+  }, [keyword]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -63,7 +75,10 @@ export default function Home() {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`${API_URL}/api/news?limit=50`, {
+        const params = new URLSearchParams({
+          region, category, q: debouncedKeyword, page: String(page), pageSize: String(PAGE_SIZE),
+        });
+        const response = await fetch(`${API_URL}/api/news?${params.toString()}`, {
           signal: controller.signal,
           cache: "no-store",
         });
@@ -71,6 +86,8 @@ export default function Home() {
         const payload: NewsResponse = await response.json();
         if (!Array.isArray(payload.data)) throw new Error("Định dạng dữ liệu API không hợp lệ");
         setArticles(payload.data);
+        setTotal(payload.total);
+        setTotalPages(payload.totalPages);
         setUpdatedAt(new Date());
       } catch (cause) {
         if (controller.signal.aborted) return;
@@ -81,26 +98,14 @@ export default function Home() {
     }
     void loadNews();
     return () => controller.abort();
-  }, [refreshKey]);
+  }, [refreshKey, region, category, debouncedKeyword, page]);
 
-  const categories = useMemo(
-    () => [...new Set(articles.map((article) => article.category))].sort(),
-    [articles]
-  );
+  const categories = ["general", "technology", "business", "science", "sports", "education"];
+  const filtered = articles;
 
-  const filtered = useMemo(() => {
-    const normalizedKeyword = keyword.trim().toLocaleLowerCase("vi-VN");
-    return articles.filter((article) => {
-      const matchRegion = region === "all" || article.region === region;
-      const matchCategory = category === "all" || article.category === category;
-      const searchable = `${article.title} ${article.summary ?? ""} ${article.source}`.toLocaleLowerCase("vi-VN");
-      return matchRegion && matchCategory && (!normalizedKeyword || searchable.includes(normalizedKeyword));
-    });
-  }, [articles, region, category, keyword]);
-
-  const featured = filtered[0];
-  const secondary = filtered.slice(1, 3);
-  const rest = filtered.slice(3);
+  const featured = page === 1 ? filtered[0] : undefined;
+  const secondary = page === 1 ? filtered.slice(1, 3) : [];
+  const rest = page === 1 ? filtered.slice(3) : filtered;
 
   function refresh() {
     setRefreshKey((key) => key + 1);
@@ -130,12 +135,12 @@ export default function Home() {
       <nav className="site-nav" aria-label="Khu vực tin tức">
         <div className="region-tabs">
           {([ ["all", "Tất cả"], ["vn", "Việt Nam"], ["world", "Thế giới"] ] as const).map(([value, label]) => (
-            <button key={value} type="button" className={`nav-tab ${region === value ? "active" : ""}`} onClick={() => setRegion(value)}>
+            <button key={value} type="button" className={`nav-tab ${region === value ? "active" : ""}`} onClick={() => { setRegion(value); setPage(1); }}>
               {label}
             </button>
           ))}
         </div>
-        <div className="nav-count">{filtered.length} bài đang hiển thị</div>
+        <div className="nav-count">{total} bài trong kho tin</div>
       </nav>
 
       <main>
@@ -155,11 +160,11 @@ export default function Home() {
           <label className="search-wrap">
             <span className="search-icon" aria-hidden="true">⌕</span>
             <span className="sr-only">Tìm kiếm tin tức</span>
-            <input type="search" placeholder="Tìm tiêu đề, từ khóa hoặc nguồn báo..." value={keyword} onChange={(event) => setKeyword(event.target.value)} />
+            <input type="search" placeholder="Tìm tiêu đề, từ khóa hoặc nguồn báo..." value={keyword} onChange={(event) => { setKeyword(event.target.value); setPage(1); }} />
           </label>
           <label className="category-wrap">
             <span className="sr-only">Lọc theo lĩnh vực</span>
-            <select value={category} onChange={(event) => setCategory(event.target.value)}>
+            <select value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }}>
               <option value="all">Tất cả lĩnh vực</option>
               {categories.map((slug) => <option key={slug} value={slug}>{categoryName(slug)}</option>)}
             </select>
@@ -227,7 +232,7 @@ export default function Home() {
                     <img className="card-photo" src={article.image_url} alt="" loading="lazy"
                       onError={(event) => { event.currentTarget.style.display = "none"; }} />
                   ) : null}
-                  <div className="card-topline"><span>{String(index + 4).padStart(2, "0")}</span><RegionLabel region={article.region} /></div>
+                  <div className="card-topline"><span>{String((page - 1) * PAGE_SIZE + index + (page === 1 ? 4 : 1)).padStart(2, "0")}</span><RegionLabel region={article.region} /></div>
                   <p className="card-category">{categoryName(article.category)}</p>
                   <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
                   <p className="card-summary">{article.summary || "Xem chi tiết tại nguồn tin gốc."}</p>
@@ -238,7 +243,17 @@ export default function Home() {
           </section>
         ) : null}
 
-        <div className="feed-footer">Dữ liệu từ các nguồn RSS. Tiêu đề và liên kết dẫn về nhà xuất bản gốc. {updatedAt ? `Tải dữ liệu lúc ${updatedAt.toLocaleTimeString("vi-VN")}.` : ""} Tìm kiếm chỉ áp dụng cho tối đa 50 bài mới nhất được API trả về.</div>
+        {totalPages > 1 ? (
+          <nav className="pagination" aria-label="Phân trang tin tức">
+            <button type="button" disabled={loading || page === 1}
+              onClick={() => setPage((value) => Math.max(1, value - 1))}>← Trang trước</button>
+            <span>Trang {page} / {totalPages}</span>
+            <button type="button" disabled={loading || page >= totalPages}
+              onClick={() => setPage((value) => value + 1)}>Trang tiếp →</button>
+          </nav>
+        ) : null}
+
+        <div className="feed-footer">Dữ liệu từ các nguồn RSS. Tiêu đề và liên kết dẫn về nhà xuất bản gốc. {updatedAt ? `Tải dữ liệu lúc ${updatedAt.toLocaleTimeString("vi-VN")}.` : ""} Đang hiển thị {articles.length} trong tổng số {total} bài phù hợp.</div>
       </main>
 
       <footer className="site-footer"><strong>NEWS RADAR.</strong><span>Built with Next.js · Cloudflare Workers · D1</span></footer>
