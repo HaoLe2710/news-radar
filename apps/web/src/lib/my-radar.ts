@@ -58,7 +58,7 @@ export function parseRadarPreferences(raw: string | null): RadarPreferences {
 }
 
 export function getRadarQueries(topics: RadarTopic[]): { category: string; q: string }[] {
-  const queries = topics.filter((topic) => topic !== "ai").map((category) => ({ category, q: "" }));
+  const queries: { category: string; q: string }[] = topics.filter((topic) => topic !== "ai").map((category) => ({ category, q: "" }));
   if (topics.includes("ai")) {
     // Fetch AI independently of the source's broad RSS category.
     queries.push(
