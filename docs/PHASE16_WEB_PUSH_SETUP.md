@@ -1,40 +1,40 @@
 # Phase 16 — Activate News Radar Web Push
 
-**Status:** Web Push endpoints deploy safely even when VAPID is unconfigured. Until configured, GET /api/push/config returns \`{"enabled":false,"publicKey":null}\` and the notification settings screen explains the setup requirement. Cloudflare Pages does not hold private keys.
+**Status:** Web Push endpoints deploy safely even when VAPID is unconfigured. Until configured, GET /api/push/config returns `{"enabled":false,"publicKey":null}` and the notification settings screen explains the setup requirement. Cloudflare Pages does not hold private keys.
 
 ## 1. Generate a unique VAPID key pair
 
 On your own machine (do not create this key in a chat and do not commit it):
 
-\`\`\`cmd
+```cmd
 cd /d D:\SideProject\news-radar
 git checkout main
 git pull origin main
 cd apps\api
 node scripts\generate-vapid.mjs
-\`\`\`
+```
 
-This prints \`VAPID_PUBLIC_KEY\` and \`VAPID_PRIVATE_KEY\`. Keep the **private key secret**. Do not reuse demo values, and do not send the keys to anyone.
+This prints `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY`. Keep the **private key secret**. Do not reuse demo values, and do not send the keys to anyone.
 
 ## 2. Set two Cloudflare Worker secrets
 
 On the machine already logged in to Cloudflare Wrangler:
 
-\`\`\`cmd
+```cmd
 cd /d D:\SideProject\news-radar\apps\api
 npx wrangler secret put VAPID_PUBLIC_KEY
 npx wrangler secret put VAPID_PRIVATE_KEY
-\`\`\`
+```
 
-Paste the appropriate value in each prompt. Use the same pair, and never rotate them casually: existing browser subscriptions must re-register after rotation. The optional \`VAPID_SUBJECT\` is an HTTPS URL; default is the News Radar Pages origin.
+Paste the appropriate value in each prompt. Use the same pair, and never rotate them casually: existing browser subscriptions must re-register after rotation. The optional `VAPID_SUBJECT` is an HTTPS URL; default is the News Radar Pages origin.
 
 **Do not put VAPID_PRIVATE_KEY in any NEXT_PUBLIC_* environment variable, website source, or the Git repository.** Worker configuration uses secrets stored in Cloudflare; GitHub CD deploys preserve them.
 
 ## 3. Verify
 
 - Check the merged Worker deploy run in GitHub Actions and that D1 migration 0007 is applied.
-- Open \`https://new-radar-api.lengochao123-27102004.workers.dev/api/push/config\`. The response should contain \`enabled:true\` and the public key only.
-- Open \`https://news-radar-9px.pages.dev/notifications/\` in an HTTPS browser and click "Bật nhận thông báo." Browser permission must be granted by a direct user action.
+- Open `https://new-radar-api.lengochao123-27102004.workers.dev/api/push/config`. The response should contain `enabled:true` and the public key only.
+- Open `https://news-radar-9px.pages.dev/notifications/` in an HTTPS browser and click "Bật nhận thông báo." Browser permission must be granted by a direct user action.
 - On iPhone, add the PWA to Home Screen before using Web Push. Browser support varies.
 - Wait for a **new** daily or weekly issue and check the notification click opens the exact issue. Existing issues are not proactively resent indefinitely.
 - After opting out, the browser unsubscribes and the matching D1 subscription is removed.
