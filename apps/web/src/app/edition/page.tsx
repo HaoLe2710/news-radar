@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { printEditionHref } from "../../lib/print-edition";
 import {
   DEFAULT_RADAR_PREFERENCES, RADAR_STORAGE_KEY, RADAR_TOPICS, parseRadarPreferences,
   type RadarPreferences,
@@ -179,7 +180,7 @@ export default function EditionPage() {
           <h1>Báo giấy của hôm nay</h1>
           <p>{dateLabel(edition.issueDate)} · Tin tức ngày {edition.coverageDate} · {edition.sourceCount} nguồn</p>
         </div>
-        <div className="nr-reader-instructions">← → để chuyển trang · Vuốt ngang trên điện thoại</div>
+        <div className="nr-reader-print-actions"><span>← → để chuyển trang · Vuốt ngang trên điện thoại</span><Link href={printEditionHref(edition.issueDate)}>In / Lưu PDF ↗</Link></div>
       </div>
       <nav className="nr-reader-pagination" aria-label="Lật trang báo">
         <button type="button" disabled={spreadIndex === 0} onClick={() => move(-1)}>← Trang trước</button>
