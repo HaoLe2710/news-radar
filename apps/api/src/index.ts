@@ -1,3 +1,4 @@
+import { deliverPublishedNotifications, handlePushApi } from "./push-notifications";
 import { createWeeklyMagazine, latestWeeklyMagazine, listWeeklyMagazines, readWeeklyMagazine } from "./weekly-magazines";
 import { isValidWeekStart } from "./weekly-builder";
 import { createEdition, latestEdition, readEdition, listEditions } from "./editions";
@@ -9,6 +10,9 @@ import { XMLParser } from "fast-xml-parser";
 type AppEnv = {
   DB: D1Database;
   AI: Ai;
+  VAPID_PUBLIC_KEY?: string;
+  VAPID_PRIVATE_KEY?: string;
+  VAPID_SUBJECT?: string;
 };
 
 type NewsSource = {
@@ -204,6 +208,9 @@ export default {
       "Cache-Control": "no-store",
     };
 
+    const pushResponse = await handlePushApi(request, env);
+    if (pushResponse) return pushResponse;
+
     if (request.method !== "GET") {
       return new Response("Method Not Allowed", {
         status: 405,
@@ -384,5 +391,10 @@ export default {
     await createDailyBrief(env);
     await createEdition(env);
     await createWeeklyMagazine(env);
+    try {
+      await deliverPublishedNotifications(env);
+    } catch (error) {
+      console.error("Optional Web Push delivery failed", error);
+    }
   },
 } satisfies ExportedHandler<AppEnv>;
