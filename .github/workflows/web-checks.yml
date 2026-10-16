@@ -29,8 +29,8 @@ jobs:
           cache-dependency-path: apps/web/package-lock.json
       - name: Install dependencies
         run: npm ci
-      - name: Test My Radar
-        run: node --experimental-strip-types --test tests/my-radar.test.mjs
+      - name: Test web features
+        run: node --experimental-strip-types --test tests/*.test.mjs
       - name: Build static site
         run: npm run build
 
