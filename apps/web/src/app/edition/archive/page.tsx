@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { printEditionHref } from "../../../lib/print-edition";
 
 type ArchiveItem = {
   issueDate: string;
@@ -70,8 +71,8 @@ export default function EditionArchive() {
       : loading ? <div className="nr-library-state">Đang mở tủ lưu trữ...</div>
       : !archive?.data.length ? <div className="nr-library-state">{page > 1 ? "Không có số báo ở trang này." : "Chưa có số báo được lưu. Hệ thống sẽ tạo ấn bản sau kỳ tổng hợp tin."}</div>
       : <section className="nr-library-grid" aria-label="Danh sách số báo">
-          {archive.data.map((item) => <Link key={item.issueDate} className="nr-library-item"
-            href={"/edition/?date=" + item.issueDate}>
+          {archive.data.map((item) => <article key={item.issueDate} className="nr-library-item">
+            <Link className="nr-library-cover-link" href={"/edition/?date=" + item.issueDate}>
             <span className="nr-library-edition-label">ẤN BẢN NGÀY {item.issueDate}</span>
             <strong className="nr-library-logo">NEWS<br/>RADAR</strong>
             {item.coverImage ? <img src={item.coverImage} alt="" loading="lazy" className="nr-library-cover"
@@ -80,7 +81,9 @@ export default function EditionArchive() {
             <span className="nr-library-date">{formatIssue(item.issueDate)}</span>
             <span className="nr-library-stats">{item.articleCount} tin · {item.sourceCount} nguồn</span>
             <span className="nr-library-open">MỞ SỐ BÁO →</span>
-          </Link>)}
+            </Link>
+            <Link className="nr-library-print-link" href={printEditionHref(item.issueDate)}>In / Lưu PDF ↗</Link>
+          </article>)}
         </section>}
     <div className="nr-library-pagination">
       <button type="button" disabled={loading || page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>← Trước</button>
