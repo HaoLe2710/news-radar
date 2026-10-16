@@ -52,8 +52,20 @@ export default function NotificationSettings(){
       const saved=localStorage.getItem(KEY);
       const localTimeZone=Intl.DateTimeFormat().resolvedOptions().timeZone;
       const previous=saved?JSON.parse(saved) as Partial<Prefs>:null;
-      setPrefs({...defaultPreferences,timeZone:localTimeZone||defaultPreferences.timeZone,
-        ...(previous && typeof previous==="object"?previous:{})});
+      const valid=previous && typeof previous==="object" ? previous : {};
+      const ids=new Set<string>(TOPICS.map(item=>item.id));
+      const time=(value:unknown,fallback:string)=>
+        typeof value==="string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value)?value:fallback;
+      setPrefs({
+        daily:typeof valid.daily==="boolean"?valid.daily:true,
+        weekly:typeof valid.weekly==="boolean"?valid.weekly:true,
+        topicsEnabled:valid.topicsEnabled===true,
+        topics:Array.isArray(valid.topics)?valid.topics.filter((item):item is Topic=>
+          typeof item==="string"&&ids.has(item)) : [],
+        quietStart:time(valid.quietStart,"22:00"),
+        quietEnd:time(valid.quietEnd,"07:00"),
+        timeZone:localTimeZone||defaultPreferences.timeZone,
+      });
     }catch{}
     (async()=>{
       try{
