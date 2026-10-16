@@ -31,7 +31,6 @@ type Subscriber = {
   preferences_json:string;
 };
 const CORS_ORIGINS = new Set(["https://news-radar-9px.pages.dev","http://localhost:3000","http://127.0.0.1:3000"]);
-const nowSql = new Date().toISOString(); // Only used in default values? Do not use as run time constant.
 
 export function normalizePushPreferences(raw:unknown):PushPreferences {
   if(!raw || typeof raw!=="object")return {...DEFAULT_PUSH_PREFERENCES};
