@@ -34,7 +34,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 export function coverageWindow(issueDate: string): { from: string; to: string; coverageDate: string } {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(issueDate)) throw new Error("Invalid issue date");
   const end = new Date(issueDate + "T00:00:00+07:00");
-  if (!Number.isFinite(end.getTime()) || end.toISOString().slice(0, 10) === "Invalid") {
+  if (!Number.isFinite(end.getTime())) {
     throw new Error("Invalid issue date");
   }
   const start = new Date(end.getTime() - 86400000);
