@@ -212,10 +212,48 @@ export default {
       );
     }
 
+
+    if (url.pathname === "/api/stats") {
+      const publishedCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const fetchedCutoff = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+
+      const [articles, sources] = await Promise.all([
+        env.DB.prepare(`SELECT
+          COUNT(*) AS total_articles,
+          SUM(CASE WHEN a.published_at >= ? THEN 1 ELSE 0 END) AS last_24h,
+          SUM(CASE WHEN a.published_at >= ? AND s.region = 'vn' THEN 1 ELSE 0 END) AS vn_24h,
+          SUM(CASE WHEN a.published_at >= ? AND s.region = 'world' THEN 1 ELSE 0 END) AS world_24h
+          FROM articles a
+          JOIN news_sources s ON s.id = a.source_id`)
+          .bind(publishedCutoff, publishedCutoff, publishedCutoff)
+          .first<{ total_articles: number; last_24h: number | null; vn_24h: number | null; world_24h: number | null }>(),
+        env.DB.prepare(`SELECT
+          COUNT(*) AS active_sources,
+          SUM(CASE WHEN last_fetched_at >= ? THEN 1 ELSE 0 END) AS recently_fetched,
+          MAX(last_fetched_at) AS last_fetched_at
+          FROM news_sources
+          WHERE is_active = 1`)
+          .bind(fetchedCutoff)
+          .first<{ active_sources: number; recently_fetched: number | null; last_fetched_at: string | null }>(),
+      ]);
+
+      return Response.json({
+        totalArticles: articles?.total_articles ?? 0,
+        last24h: articles?.last_24h ?? 0,
+        vn24h: articles?.vn_24h ?? 0,
+        world24h: articles?.world_24h ?? 0,
+        activeSources: sources?.active_sources ?? 0,
+        recentlyFetchedSources: sources?.recently_fetched ?? 0,
+        lastFetchedAt: sources?.last_fetched_at ?? null,
+      }, { headers });
+    }
+
     if (url.pathname === "/api/news") {
       const region = url.searchParams.get("region") ?? "all";
       const category = url.searchParams.get("category") ?? "all";
       const q = (url.searchParams.get("q") ?? "").trim().slice(0, 100);
+      const period = url.searchParams.get("period") === "24h" ? "24h" : "all";
+      const publishedCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
       const rawPage = Number(url.searchParams.get("page") ?? 1);
       const page = Number.isFinite(rawPage)
@@ -232,8 +270,9 @@ export default {
           AND (? = 'all' OR c.slug = ?)
           AND (? = '' OR INSTR(LOWER(a.title), LOWER(?)) > 0
             OR INSTR(LOWER(COALESCE(a.summary, '')), LOWER(?)) > 0
-            OR INSTR(LOWER(s.name), LOWER(?)) > 0)`;
-      const args = [region, region, category, category, q, q, q, q];
+            OR INSTR(LOWER(s.name), LOWER(?)) > 0)
+          AND (? = 'all' OR a.published_at >= ?)`;
+      const args = [region, region, category, category, q, q, q, q, period, publishedCutoff];
       const [countResult, articleResult] = await Promise.all([
         env.DB.prepare(`SELECT COUNT(*) AS total ${where}`)
           .bind(...args).first<{ total: number }>(),
