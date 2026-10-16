@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import OfflineIssueButton from "../../components/OfflineIssueButton";
+import { getOfflineIssue, newestOfflineIssue, offlineKey, getReadingPage, setReadingPage } from "../../lib/offline-library";
 import { printEditionHref } from "../../lib/print-edition";
 import {
   DEFAULT_RADAR_PREFERENCES, RADAR_STORAGE_KEY, RADAR_TOPICS, parseRadarPreferences,
@@ -101,6 +103,7 @@ export default function EditionPage() {
   const [requestedDate, setRequestedDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [fromOffline, setFromOffline] = useState(false);
   const [wide, setWide] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [preferences, setPreferences] = useState<RadarPreferences>(DEFAULT_RADAR_PREFERENCES);
@@ -118,6 +121,7 @@ export default function EditionPage() {
     const params = new URLSearchParams(window.location.search);
     const date = params.get("date");
     const normalized = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
+    const explicitPage = params.has("page");
     const requestedPage = Number(params.get("page") ?? 1);
     setRequestedDate(normalized);
     setCurrentPage(Number.isFinite(requestedPage) ? Math.max(1, Math.floor(requestedPage)) : 1);
@@ -130,9 +134,18 @@ export default function EditionPage() {
         });
         if (!response.ok) throw new Error("Worker HTTP " + response.status);
         const payload: { data: NewspaperEdition | null } = await response.json();
-        if (!controller.signal.aborted) setEdition(payload.data ?? null);
+        if (!controller.signal.aborted) {
+          setEdition(payload.data ?? null);
+          if (payload.data && !explicitPage) setCurrentPage(getReadingPage(offlineKey("daily", payload.data.issueDate)));
+        }
       } catch {
-        if (!controller.signal.aborted) setError(true);
+        try {
+          const saved = normalized ? await getOfflineIssue(offlineKey("daily", normalized)) : await newestOfflineIssue("daily");
+          if (!controller.signal.aborted && saved?.kind === "daily") {
+            setEdition(saved.payload); setFromOffline(true);
+            if (!explicitPage) setCurrentPage(getReadingPage(saved.key));
+          } else if (!controller.signal.aborted) setError(true);
+        } catch { if (!controller.signal.aborted) setError(true); }
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
@@ -152,6 +165,7 @@ export default function EditionPage() {
     const nextPage = (spreads[nextIndex]?.[0] ?? 0) + 1;
     if (nextPage === currentPage) return;
     setCurrentPage(nextPage);
+    if (edition) setReadingPage(offlineKey("daily",edition.issueDate),nextPage);
     const url = new URL(window.location.href);
     url.searchParams.set("page", String(nextPage));
     window.history.replaceState(null, "", url.pathname + url.search);
@@ -180,12 +194,13 @@ export default function EditionPage() {
     : error ? <div className="nr-reader-message" role="alert">Không tải được số báo. Hãy kiểm tra kết nối Worker hoặc thử lại sau.</div>
     : !edition ? <div className="nr-reader-message">Số báo {requestedDate ?? "mới nhất"} chưa được xuất bản. <Link href="/edition/archive/">Xem thư viện số báo đã có →</Link></div>
     : <>
+      {fromOffline ? <p className="nr-offline-banner" role="status">Đang đọc bản đã lưu trên thiết bị · Tin gốc và ảnh có thể cần Internet.</p> : null}
       <div className="nr-reader-intro">
         <div><span className="nr-reader-eyebrow">ẤN BẢN SỐ · {edition.issueDate}</span>
           <h1>Báo giấy của hôm nay</h1>
           <p>{dateLabel(edition.issueDate)} · Tin tức ngày {edition.coverageDate} · {edition.sourceCount} nguồn</p>
         </div>
-        <div className="nr-reader-print-actions"><span>← → để chuyển trang · Vuốt ngang trên điện thoại</span><Link href={printEditionHref(edition.issueDate)}>In / Lưu PDF ↗</Link></div>
+        <div className="nr-reader-print-actions"><OfflineIssueButton kind="daily" issue={edition}/><Link href="/library/">Tủ báo của tôi ↗</Link><span>← → để chuyển trang · Vuốt ngang trên điện thoại</span><Link href={printEditionHref(edition.issueDate)}>In / Lưu PDF ↗</Link></div>
       </div>
       <nav className="nr-reader-pagination" aria-label="Lật trang báo">
         <button type="button" disabled={spreadIndex === 0} onClick={() => move(-1)}>← Trang trước</button>
@@ -215,6 +230,7 @@ export default function EditionPage() {
             aria-current={visiblePages.includes(index) ? "page" : undefined}
             onClick={() => {
               setCurrentPage(index + 1);
+              setReadingPage(offlineKey("daily",edition.issueDate),index+1);
               const url = new URL(window.location.href);
               url.searchParams.set("page", String(index + 1));
               window.history.replaceState(null, "", url.pathname + url.search);
