@@ -1,83 +1,221 @@
 "use client";
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { DEFAULT_RADAR_PREFERENCES, RADAR_STORAGE_KEY, parseRadarPreferences, selectRadarStories } from "../../lib/my-radar";
 
-type Article = {id:number;title:string;url:string;summary:string|null;image_url:string|null;published_at:string|null;source:string;region:"vn"|"world";category:string};
-type Edition = { id:string;issueDate:string;coverageDate:string;title:string;summary:string;summaryMode:"ai"|"rss";lead:Article;secondary:Article[];briefs:Article[];radarPool:Article[];articleCount:number;sourceCount:number;createdAt:string };
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import {
+  DEFAULT_RADAR_PREFERENCES, RADAR_STORAGE_KEY, RADAR_TOPICS, parseRadarPreferences,
+  type RadarPreferences,
+} from "../../lib/my-radar";
+import {
+  buildEditionPages, editionSpreads, indexForPage, offsetSpread,
+  type EditionArticle, type EditionPage, type NewspaperEdition,
+} from "../../lib/newspaper-pages";
+
 const API = (process.env.NEXT_PUBLIC_NEWS_API_URL ?? "http://127.0.0.1:8787").replace(/\/$/, "");
-const LABELS:Record<string,string> = {technology:"Công nghệ",business:"Kinh tế",science:"Khoa học",general:"Thời sự",sports:"Thể thao",education:"Giáo dục"};
-function dateLabel(date:string){return new Intl.DateTimeFormat("vi-VN",{day:"2-digit",month:"long",year:"numeric",timeZone:"Asia/Ho_Chi_Minh"}).format(new Date(date+"T12:00:00+07:00"));}
-function Story({article,index}:{article:Article;index?:number}){
- return <article className="paper-story">
-  <p className="paper-story-meta">{index?String(index).padStart(2,"0")+" / ":""}{LABELS[article.category]??"Tin tức"} · {article.source}</p>
-  <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
-  <p>{article.summary || "Mở nguồn báo để đọc đầy đủ thông tin."}</p>
-  <a className="paper-source" href={article.url} target="_blank" rel="noopener noreferrer">Đọc bài gốc ↗</a>
- </article>;
+const CATEGORIES: Record<string, string> = {
+  technology: "Công nghệ", business: "Kinh tế", science: "Khoa học",
+  general: "Thời sự", sports: "Thể thao", education: "Giáo dục",
+};
+function dateLabel(day: string): string {
+  return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "long", year: "numeric", timeZone: "Asia/Ho_Chi_Minh" })
+    .format(new Date(day + "T12:00:00+07:00"));
 }
-export default function EditionPage(){
- const [edition,setEdition]=useState<Edition|null>(null);
- const [requestedDate,setRequestedDate]=useState<string|null>(null);
- const [loading,setLoading]=useState(true);
- const [error,setError]=useState(false);
- const [radarTopics,setRadarTopics]=useState([...DEFAULT_RADAR_PREFERENCES.topics]);
- const [radarEnabled,setRadarEnabled]=useState(DEFAULT_RADAR_PREFERENCES.enabled);
- useEffect(()=>{
-  const date = new URLSearchParams(window.location.search).get("date");
-  const validDate = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
-  setRequestedDate(validDate);
-  try {const prefs=parseRadarPreferences(window.localStorage.getItem(RADAR_STORAGE_KEY));setRadarTopics(prefs.topics);setRadarEnabled(prefs.enabled);}catch {}
-  const controller=new AbortController();
-  async function load(){
-   try{
-    const url=validDate ? "/api/editions/"+validDate : "/api/editions/latest";
-    const response=await fetch(API+url,{cache:"no-store",signal:controller.signal});
-    if(!response.ok)throw new Error("API error");
-    const result:{data:Edition|null}=await response.json();
-    if(!controller.signal.aborted)setEdition(result.data);
-   }catch{if(!controller.signal.aborted)setError(true);}
-   finally{if(!controller.signal.aborted)setLoading(false);}
-  }
-  void load();return()=>controller.abort();
- },[]);
- const radar=edition&&radarEnabled?selectRadarStories(edition.radarPool,radarTopics,4):[];
- return <main className="paper-shell">
-  <div className="paper-utility"><Link href="/">← Trở về News Radar</Link><span>ẤN PHẨM SỐ · NEWSPAPER EDITION</span></div>
-  <header className="paper-masthead">
-   <div className="paper-pretitle">TIN TỨC VIỆT NAM &amp; THẾ GIỚI — ẤN BẢN HẰNG NGÀY</div>
-   <h1><Link href="/">NEWS RADAR</Link></h1>
-   <div className="paper-imprint"><span>ĐỌC ĐỂ HIỂU ĐIỀU ĐANG DIỄN RA</span><span>{edition?"SỐ "+edition.issueDate:"BẢN TIN HẰNG NGÀY"}</span><span>ĐỘC LẬP · TỔNG HỢP RSS</span></div>
-  </header>
-  {loading?<div className="paper-message">Đang mở số báo...</div>:error?<div className="paper-message" role="alert">Chưa kết nối được API số báo. Worker cần được triển khai Phase 10.</div>:!edition?<div className="paper-message">Số báo {requestedDate??"mới nhất"} chưa được xuất bản. Hệ thống sẽ tổng hợp sau khi hoàn tất kỳ lấy tin.</div>:<>
-   <div className="paper-dateline"><span>{dateLabel(edition.issueDate)}</span><span>ĐIỂM TIN NGÀY {edition.coverageDate}</span><span>{edition.sourceCount} NGUỒN · {edition.articleCount} BÀI TUYỂN CHỌN</span></div>
-   <section className="paper-front">
-    <div className="paper-lead">
-     <p className="paper-kicker">TRANG NHẤT / BÀI NỔI BẬT</p>
-     <h2><a href={edition.lead.url} target="_blank" rel="noopener noreferrer">{edition.lead.title}</a></h2>
-     {edition.lead.image_url?<img src={edition.lead.image_url} alt="" className="paper-lead-image" loading="eager"/>:null}
-     <p className="paper-lead-description">{edition.lead.summary??"Đọc thêm tại nguồn xuất bản gốc."}</p>
-     <a className="paper-source" href={edition.lead.url} target="_blank" rel="noopener noreferrer">{edition.lead.source} — Đọc bài gốc ↗</a>
+function OriginalSource({ article }: { article: EditionArticle }) {
+  return <a className="nr-source" href={article.url} target="_blank" rel="noopener noreferrer">
+    {article.source} · Đọc bài gốc ↗
+  </a>;
+}
+function NewspaperStory({ article, number }: { article: EditionArticle; number: number }) {
+  return <div className="nr-report">
+    <span className="nr-category">{String(number).padStart(2, "0")} / {CATEGORIES[article.category] ?? "Tin tức"}</span>
+    <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
+    <p>{article.summary || "Thông tin chi tiết có tại nguồn báo gốc."}</p>
+    <OriginalSource article={article}/>
+  </div>;
+}
+function PageContents({ page, edition }: { page: EditionPage; edition: NewspaperEdition }) {
+  if (page.kind === "cover") return <>
+    <p className="nr-cover-eyebrow">TỜ BÁO TỔNG HỢP ĐỘC LẬP · VIỆT NAM VÀ THẾ GIỚI</p>
+    <div className="nr-cover-name">NEWS RADAR</div>
+    <div className="nr-cover-band"><span>SỐ {edition.issueDate}</span><span>NGÀY TIN {edition.coverageDate}</span><span>{edition.sourceCount} NGUỒN · {edition.articleCount} BÀI</span></div>
+    <div className="nr-cover-grid">
+      <section className="nr-cover-lead">
+        <span className="nr-category">TRANG NHẤT · TIN TIÊU ĐIỂM</span>
+        <h2><a href={edition.lead.url} target="_blank" rel="noopener noreferrer">{edition.lead.title}</a></h2>
+        {edition.lead.image_url ? <img className="nr-cover-image" src={edition.lead.image_url} alt="" loading="eager"
+          onError={(e) => { e.currentTarget.style.display = "none"; }}/> : null}
+        <p>{edition.lead.summary || "Chi tiết có tại nguồn báo gốc."}</p>
+        <OriginalSource article={edition.lead}/>
+      </section>
+      <aside className="nr-editor-note">
+        <span className="nr-category">LỜI TÒA SOẠN</span>
+        <h3>{edition.title}</h3>
+        <p>{edition.summary}</p>
+        <small>{edition.summaryMode === "ai" ? "Bản tóm lược có hỗ trợ AI từ dữ liệu RSS." : "Tổng hợp từ tiêu đề và mô tả RSS."} Không thay thế nội dung gốc.</small>
+        <div className="nr-cover-folio">BẢN TIN HẰNG NGÀY · {dateLabel(edition.issueDate)}</div>
+      </aside>
     </div>
-    <aside className="paper-editor">
-     <p className="paper-kicker">LỜI TÒA SOẠN</p>
-     <h2>{edition.title}</h2>
-     <p>{edition.summary}</p>
-     <small>{edition.summaryMode==="ai"?"Biên tập tóm lược với hỗ trợ AI từ RSS.":"Tóm lược biên tập từ tiêu đề và mô tả RSS."} Nội dung chỉ để tham khảo; xem nguồn gốc để kiểm chứng.</small>
-     <div className="paper-ornament" aria-hidden="true">✦</div>
-    </aside>
-   </section>
-   <div className="paper-divider"><span>TRONG SỐ BÁO NÀY</span><span>01 — 06</span></div>
-   <section className="paper-columns" aria-label="Tin nổi bật">
-    {edition.secondary.map((a,i)=><Story key={a.id} article={a} index={i+1}/>)}
-   </section>
-   <div className="paper-divider"><span>ĐIỂM NHANH / BRIEFS</span><span>TIN TRONG NGÀY</span></div>
-   <section className="paper-briefs">{edition.briefs.map((a)=><div className="paper-brief" key={a.id}><strong><a href={a.url} target="_blank" rel="noopener noreferrer">{a.title}</a></strong><span>{a.source}</span></div>)}</section>
-   <div className="paper-divider"><span>MY RADAR / TIN RIÊNG CỦA BẠN</span><span>TỪ SỞ THÍCH ĐÃ LƯU</span></div>
-   <section className="paper-personal">
-    {!radarEnabled?<p>My Radar đang tắt. Bạn có thể bật lại trên trang chủ.</p>:radar.length?radar.map(({article,topic})=><article key={article.id}><span>{topic.toUpperCase()} · {article.source}</span><h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3></article>):<p>Chưa có bài phù hợp trong số báo này. Hãy thử chọn thêm chủ đề trên trang chủ.</p>}
-   </section>
-   <footer className="paper-end"><strong>NEWS RADAR.</strong><span>Ấn bản cố định từ dữ liệu RSS ngày {edition.coverageDate}. Không tự thay đổi sau khi xuất bản.</span><Link href="/">Trở về trang tin →</Link></footer>
-  </>}
- </main>;
+  </>;
+  if (page.kind === "stories") return <>
+    <div className="nr-inside-header"><span>NEWS RADAR / {edition.issueDate}</span><span>{page.subtitle}</span></div>
+    <div className="nr-section-kicker">THỜI SỰ / NHỮNG GÓC NHÌN</div>
+    <h2 className="nr-section-title">{page.title}</h2>
+    <div className="nr-report-list">{page.articles.map((article, index) =>
+      <NewspaperStory key={article.id} article={article} number={index + 1}/>)}</div>
+  </>;
+  if (page.kind === "briefs") return <>
+    <div className="nr-inside-header"><span>NEWS RADAR / {edition.issueDate}</span><span>TIN NHANH · TRONG NGÀY</span></div>
+    <div className="nr-section-kicker">BẢN TIN NGẮN</div>
+    <h2 className="nr-section-title">{page.title}</h2>
+    <p className="nr-section-description">Những diễn biến được chọn từ các nguồn RSS của kỳ báo này.</p>
+    <div className="nr-brief-list">{page.articles.map((article, index) => <div key={article.id} className="nr-brief-item">
+      <span className="nr-brief-index">{String(index + 1).padStart(2, "0")}</span>
+      <div><h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
+        <p>{article.summary || "Xem bài viết gốc để biết thêm chi tiết."}</p><OriginalSource article={article}/></div>
+    </div>)}</div>
+  </>;
+  return <>
+    <div className="nr-inside-header"><span>NEWS RADAR / {edition.issueDate}</span><span>ẤN BẢN CÁ NHÂN</span></div>
+    <div className="nr-section-kicker">MY RADAR</div>
+    <h2 className="nr-section-title">{page.title}</h2>
+    <p className="nr-section-description">Tin chọn lọc theo sở thích trên thiết bị của bạn. Nội dung số báo gốc vẫn cố định.</p>
+    {!page.enabled ? <div className="nr-empty">My Radar đang tắt. Hãy bật lại tại trang chủ.</div>
+      : page.articles.length === 0 ? <div className="nr-empty">Chưa có tin phù hợp trong số báo này. Bạn có thể chọn thêm chủ đề tại trang chủ.</div>
+      : <div className="nr-radar-list">{page.articles.map(({ article, topic }) => <section key={article.id}>
+          <span className="nr-category">{RADAR_TOPICS.find((t) => t.id === topic)?.label ?? topic} · {article.source}</span>
+          <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
+          <p>{article.summary || "Đọc thêm ở nguồn gốc."}</p>
+        </section>)}</div>}
+    <p className="nr-disclaimer">Nội dung của bản tin được tổng hợp từ tiêu đề và mô tả RSS; liên kết dẫn về trang báo xuất bản gốc.</p>
+  </>;
+}
+
+export default function EditionPage() {
+  const [edition, setEdition] = useState<NewspaperEdition | null>(null);
+  const [requestedDate, setRequestedDate] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [wide, setWide] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [preferences, setPreferences] = useState<RadarPreferences>(DEFAULT_RADAR_PREFERENCES);
+  const touchStart = useRef<number | null>(null);
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 920px)");
+    const update = () => setWide(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const date = params.get("date");
+    const normalized = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
+    const requestedPage = Number(params.get("page") ?? 1);
+    setRequestedDate(normalized);
+    setCurrentPage(Number.isFinite(requestedPage) ? Math.max(1, Math.floor(requestedPage)) : 1);
+    try { setPreferences(parseRadarPreferences(window.localStorage.getItem(RADAR_STORAGE_KEY))); } catch { /* optional */ }
+    const controller = new AbortController();
+    async function load() {
+      try {
+        const response = await fetch(API + (normalized ? "/api/editions/" + normalized : "/api/editions/latest"), {
+          cache: "no-store", signal: controller.signal,
+        });
+        if (!response.ok) throw new Error("Worker HTTP " + response.status);
+        const payload: { data: NewspaperEdition | null } = await response.json();
+        if (!controller.signal.aborted) setEdition(payload.data ?? null);
+      } catch {
+        if (!controller.signal.aborted) setError(true);
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }
+    void load();
+    return () => controller.abort();
+  }, []);
+
+  const pages = useMemo(() => edition ? buildEditionPages(edition, preferences) : [], [edition, preferences]);
+  const spreads = useMemo(() => editionSpreads(pages.length, wide), [pages.length, wide]);
+  const spreadIndex = indexForPage(spreads, currentPage);
+  const visiblePages = spreads[spreadIndex] ?? [];
+
+  function move(delta: number) {
+    if (!spreads.length) return;
+    const nextIndex = offsetSpread(spreadIndex, delta, spreads.length);
+    const nextPage = (spreads[nextIndex]?.[0] ?? 0) + 1;
+    if (nextPage === currentPage) return;
+    setCurrentPage(nextPage);
+    const url = new URL(window.location.href);
+    url.searchParams.set("page", String(nextPage));
+    window.history.replaceState(null, "", url.pathname + url.search);
+  }
+
+  useEffect(() => {
+    const keydown = (event: KeyboardEvent) => {
+      if (event.altKey || event.ctrlKey || event.metaKey || ["INPUT", "TEXTAREA", "SELECT"].includes((event.target as HTMLElement)?.tagName)) return;
+      if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+        event.preventDefault();
+        move(event.key === "ArrowRight" ? 1 : -1);
+      }
+    };
+    window.addEventListener("keydown", keydown);
+    return () => window.removeEventListener("keydown", keydown);
+    // The handler follows the current page and viewport spread.
+  });
+
+  return <main className="nr-reader-shell">
+    <nav className="nr-reader-top" aria-label="Điều hướng ấn bản">
+      <Link href="/">← Trang tin</Link>
+      <strong>NEWS RADAR <span>· NEWSPAPER</span></strong>
+      <Link href="/edition/archive/">Thư viện số báo ↗</Link>
+    </nav>
+    {loading ? <div className="nr-reader-message">Đang mở ấn bản...</div>
+    : error ? <div className="nr-reader-message" role="alert">Không tải được số báo. Hãy kiểm tra kết nối Worker hoặc thử lại sau.</div>
+    : !edition ? <div className="nr-reader-message">Số báo {requestedDate ?? "mới nhất"} chưa được xuất bản. <Link href="/edition/archive/">Xem thư viện số báo đã có →</Link></div>
+    : <>
+      <div className="nr-reader-intro">
+        <div><span className="nr-reader-eyebrow">ẤN BẢN SỐ · {edition.issueDate}</span>
+          <h1>Báo giấy của hôm nay</h1>
+          <p>{dateLabel(edition.issueDate)} · Tin tức ngày {edition.coverageDate} · {edition.sourceCount} nguồn</p>
+        </div>
+        <div className="nr-reader-instructions">← → để chuyển trang · Vuốt ngang trên điện thoại</div>
+      </div>
+      <nav className="nr-reader-pagination" aria-label="Lật trang báo">
+        <button type="button" disabled={spreadIndex === 0} onClick={() => move(-1)}>← Trang trước</button>
+        <span>Trang {visiblePages.map((i) => i + 1).join("–")} / {pages.length}</span>
+        <button type="button" disabled={spreadIndex >= spreads.length - 1} onClick={() => move(1)}>Trang tiếp →</button>
+      </nav>
+      <div className={"nr-book " + (visiblePages.length === 1 ? "nr-book-single" : "")}
+        onTouchStart={(e) => { touchStart.current = e.touches[0]?.clientX ?? null; }}
+        onTouchEnd={(e) => {
+          if (touchStart.current === null) return;
+          const end = e.changedTouches[0]?.clientX ?? touchStart.current;
+          const distance = end - touchStart.current;
+          touchStart.current = null;
+          if (Math.abs(distance) > 70) move(distance < 0 ? 1 : -1);
+        }}>
+        {visiblePages.map((index) => {
+          const page = pages[index];
+          return <article key={page.id} className="nr-sheet nr-page-turn" aria-label={"Trang " + (index + 1) + ": " + page.title}>
+            <div className="nr-sheet-body"><PageContents page={page} edition={edition}/></div>
+            <footer className="nr-sheet-footer"><span>NEWS RADAR · {edition.issueDate}</span><span>{index + 1}</span></footer>
+          </article>;
+        })}
+      </div>
+      <div className="nr-reader-bottom">
+        <div className="nr-page-list" aria-label="Mục lục ấn bản">
+          {pages.map((page, index) => <button type="button" key={page.id}
+            aria-current={visiblePages.includes(index) ? "page" : undefined}
+            onClick={() => {
+              setCurrentPage(index + 1);
+              const url = new URL(window.location.href);
+              url.searchParams.set("page", String(index + 1));
+              window.history.replaceState(null, "", url.pathname + url.search);
+            }}>{String(index + 1).padStart(2, "0")} {page.title}</button>)}
+        </div>
+        <p>Mỗi số báo được lưu cố định theo ngày phát hành. Bài viết mở về nguồn báo gốc.</p>
+      </div>
+    </>}
+  </main>;
 }
