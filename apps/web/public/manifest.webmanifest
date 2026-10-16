@@ -1,0 +1,26 @@
+{
+  "id": "/",
+  "name": "News Radar Pocket — Báo giấy mỗi ngày",
+  "short_name": "News Radar",
+  "description": "Đọc số báo ngày và tạp chí tuần, lưu ấn bản để sử dụng offline.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5efdf",
+  "theme_color": "#28483a",
+  "lang": "vi",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
