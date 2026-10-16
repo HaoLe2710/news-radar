@@ -273,3 +273,15 @@ button:disabled { cursor: wait; opacity: .7; }
 @media(prefers-reduced-motion:reduce){.nr-page-turn{animation:none}.nr-library-item{transition:none}}
 
 .edition-entry-actions{display:flex;flex-wrap:wrap;gap:10px}.edition-entry-actions a:last-child{background:transparent;color:var(--green);border:1px solid var(--green)}.edition-entry-actions a:last-child:hover{background:var(--green);color:#fff}
+
+
+/* Phase 12 — accessible print actions in issue reader and archive. */
+.nr-reader-print-actions{display:flex;flex-direction:column;align-items:flex-end;gap:12px;font:12px/1.5 Arial,sans-serif;color:#786e62}
+.nr-reader-print-actions a{display:inline-flex;align-items:center;padding:11px 17px;border:1px solid #28483a;background:#28483a;color:#fff;font-weight:700;white-space:nowrap}
+.nr-reader-print-actions a:hover{color:#fff;background:#a43c2c;border-color:#a43c2c}
+.nr-reader-print-actions a:focus-visible,.nr-library-print-link:focus-visible{outline:2px solid #a43c2c;outline-offset:3px}
+.nr-library-cover-link{display:flex;flex-direction:column;min-width:0;flex:1;color:inherit}
+.nr-library-cover-link:hover{color:inherit}
+.nr-library-print-link{display:inline-block;align-self:flex-start;margin-top:13px;padding:9px 12px;background:#2e4738;color:#fff;font:700 11px Arial,sans-serif}
+.nr-library-print-link:hover{background:#a43c2c;color:#fff}
+@media(max-width:650px){.nr-reader-intro{align-items:flex-start;flex-direction:column}.nr-reader-print-actions{align-items:flex-start}.nr-reader-print-actions span{display:none}}
