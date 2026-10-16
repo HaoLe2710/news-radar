@@ -16,6 +16,16 @@ type Article = {
 
 type NewsResponse = { data: Article[]; count: number; total: number; page: number; pageSize: number; totalPages: number };
 type Region = "all" | "vn" | "world";
+type Period = "all" | "24h";
+type NewsStats = {
+  totalArticles: number;
+  last24h: number;
+  vn24h: number;
+  world24h: number;
+  activeSources: number;
+  recentlyFetchedSources: number;
+  lastFetchedAt: string | null;
+};
 
 const API_URL = (process.env.NEXT_PUBLIC_NEWS_API_URL ?? "http://127.0.0.1:8787").replace(/\/$/, "");
 const PAGE_SIZE = 20;
@@ -53,6 +63,9 @@ function RegionLabel({ region }: { region: Article["region"] }) {
 export default function Home() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [region, setRegion] = useState<Region>("all");
+  const [period, setPeriod] = useState<Period>("all");
+  const [stats, setStats] = useState<NewsStats | null>(null);
+  const [statsError, setStatsError] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -71,12 +84,34 @@ export default function Home() {
 
   useEffect(() => {
     const controller = new AbortController();
+    async function loadStats() {
+      try {
+        const response = await fetch(`${API_URL}/api/stats`, {
+          signal: controller.signal,
+          cache: "no-store",
+        });
+        if (!response.ok) throw new Error("Cannot fetch news stats");
+        const payload: NewsStats = await response.json();
+        if (!controller.signal.aborted) {
+          setStats(payload);
+          setStatsError(false);
+        }
+      } catch {
+        if (!controller.signal.aborted) setStatsError(true);
+      }
+    }
+    void loadStats();
+    return () => controller.abort();
+  }, [refreshKey]);
+
+  useEffect(() => {
+    const controller = new AbortController();
     async function loadNews() {
       setLoading(true);
       setError(null);
       try {
         const params = new URLSearchParams({
-          region, category, q: debouncedKeyword, page: String(page), pageSize: String(PAGE_SIZE),
+          region, category, period, q: debouncedKeyword, page: String(page), pageSize: String(PAGE_SIZE),
         });
         const response = await fetch(`${API_URL}/api/news?${params.toString()}`, {
           signal: controller.signal,
@@ -98,7 +133,7 @@ export default function Home() {
     }
     void loadNews();
     return () => controller.abort();
-  }, [refreshKey, region, category, debouncedKeyword, page]);
+  }, [refreshKey, region, category, period, debouncedKeyword, page]);
 
   const categories = ["general", "technology", "business", "science", "sports", "education"];
   const filtered = articles;
@@ -156,6 +191,35 @@ export default function Home() {
           </div>
         </section>
 
+        <section className="daily-stats" aria-label="Thống kê tin tức">
+          <div className="daily-stat">
+            <span>TIN TRONG 24 GIỜ</span>
+            <strong>{stats ? stats.last24h : "—"}</strong>
+            <small>{stats ? `Việt Nam ${stats.vn24h} · Thế giới ${stats.world24h}` : "Đang tải thống kê"}</small>
+          </div>
+          <div className="daily-stat">
+            <span>NGUỒN VỪA ĐỒNG BỘ</span>
+            <strong>{stats ? `${stats.recentlyFetchedSources}/${stats.activeSources}` : "—"}</strong>
+            <small>Ghi nhận trong 3 giờ gần nhất</small>
+          </div>
+          <div className="daily-stat">
+            <span>TỔNG SỐ BÀI ĐÃ LƯU</span>
+            <strong>{stats ? stats.totalArticles : "—"}</strong>
+            <small>{stats?.lastFetchedAt ? `Lần lấy tin gần nhất: ${formatDate(stats.lastFetchedAt)}` : "Chưa có lịch sử lấy tin"}</small>
+          </div>
+        </section>
+        {statsError ? <p className="stats-warning">Không tải được thống kê. Kiểm tra API /api/stats.</p> : null}
+
+        <div className="period-bar" role="group" aria-label="Khoảng thời gian tin tức">
+          <span>Xem tin theo thời gian</span>
+          <div className="period-buttons">
+            <button type="button" className={period === "all" ? "active" : ""}
+              aria-pressed={period === "all"} onClick={() => { setPeriod("all"); setPage(1); }}>Tất cả</button>
+            <button type="button" className={period === "24h" ? "active" : ""}
+              aria-pressed={period === "24h"} onClick={() => { setPeriod("24h"); setPage(1); }}>24 giờ qua</button>
+          </div>
+        </div>
+
         <div className="filter-bar">
           <label className="search-wrap">
             <span className="search-icon" aria-hidden="true">⌕</span>
@@ -192,7 +256,7 @@ export default function Home() {
 
         {featured ? (
           <>
-            <div className="section-heading"><span>01 / TIÊU ĐIỂM</span><span>SELECTED STORIES</span></div>
+            <div className="section-heading"><span>01 / TIÊU ĐIỂM</span><span>{period === "24h" ? "TIN MỚI TRONG 24 GIỜ" : "SELECTED STORIES"}</span></div>
             <section className="lead-layout" aria-label="Tin nổi bật">
               <article className="lead-story">
                 {featured.image_url ? (
