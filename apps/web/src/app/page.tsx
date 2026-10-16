@@ -76,6 +76,8 @@ export default function Home() {
   const [stats, setStats] = useState<NewsStats | null>(null);
   const [statsError, setStatsError] = useState(false);
   const [relatedStories, setRelatedStories] = useState<RelatedStory[]>([]);
+  const [relatedLoading, setRelatedLoading] = useState(true);
+  const [relatedError, setRelatedError] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -95,6 +97,8 @@ export default function Home() {
   useEffect(() => {
     const controller = new AbortController();
     async function loadRelatedStories() {
+      setRelatedLoading(true);
+      setRelatedError(false);
       try {
         const response = await fetch(`${API_URL}/api/story-groups?region=${region}`, {
           signal: controller.signal, cache: "no-store",
@@ -103,7 +107,12 @@ export default function Home() {
         const payload: { data: RelatedStory[] } = await response.json();
         if (!controller.signal.aborted) setRelatedStories(Array.isArray(payload.data) ? payload.data : []);
       } catch {
-        if (!controller.signal.aborted) setRelatedStories([]);
+        if (!controller.signal.aborted) {
+          setRelatedStories([]);
+          setRelatedError(true);
+        }
+      } finally {
+        if (!controller.signal.aborted) setRelatedLoading(false);
       }
     }
     void loadRelatedStories();
@@ -248,12 +257,25 @@ export default function Home() {
           </div>
         </div>
 
-        {relatedStories.length > 0 && !debouncedKeyword && category === "all" && period === "all" ? (
+        {!debouncedKeyword && category === "all" && period === "all" ? (
           <section className="related-section" aria-label="Tin cùng sự kiện">
             <div className="section-heading">
               <span>TIN LIÊN QUAN · NHIỀU NGUỒN</span>
-              <span>GOM THEO TIÊU ĐỀ · 72 GIỜ</span>
+              <span>{relatedLoading ? "ĐANG PHÂN TÍCH" : `${relatedStories.length} NHÓM TRONG 72 GIỜ`}</span>
             </div>
+            {relatedLoading ? (
+              <div className="related-empty">Đang kiểm tra tin liên quan từ các nguồn RSS...</div>
+            ) : relatedError ? (
+              <div className="related-empty" role="status">
+                Không thể tải nhóm tin. Hãy xác nhận Worker đã deploy Phase 7 và endpoint
+                <code> /api/story-groups </code> trả về HTTP 200.
+              </div>
+            ) : relatedStories.length === 0 ? (
+              <div className="related-empty" role="status">
+                Chưa phát hiện bài đủ giống nhau trong 72 giờ gần đây.
+                Đây không phải lỗi: News Radar chỉ gom khi tiêu đề có bằng chứng trùng sự kiện đủ mạnh.
+              </div>
+            ) : (
             <div className="related-grid">
               {relatedStories.map((story) => (
                 <article className="related-story" key={story.id}>
@@ -269,6 +291,7 @@ export default function Home() {
                 </article>
               ))}
             </div>
+            )}
             <p className="related-disclaimer">Nhóm dựa trên độ giống tiêu đề, không khẳng định các bài cùng một sự kiện.</p>
           </section>
         ) : null}
