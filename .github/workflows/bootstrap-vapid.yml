@@ -1,0 +1,112 @@
+name: News Radar VAPID Bootstrap
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/bootstrap-vapid.yml"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/bootstrap-vapid.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Check VAPID key generation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Generate and validate ephemeral pair without printing secrets
+        run: |
+          node --input-type=module <<'NODE'
+          import { webcrypto } from 'node:crypto';
+          const keys=await webcrypto.subtle.generateKey({name:"ECDSA",namedCurve:"P-256"},true,["sign","verify"]);
+          const raw=new Uint8Array(await webcrypto.subtle.exportKey("raw",keys.publicKey));
+          const jwk=await webcrypto.subtle.exportKey("jwk",keys.privateKey);
+          if(raw.length!==65 || raw[0]!==4 || typeof jwk.d!=="string")
+            throw new Error("Invalid generated VAPID pair");
+          console.log("Ephemeral P-256 key pair validated.");
+          NODE
+
+  provision:
+    name: Provision VAPID secrets once
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: news-radar-vapid-bootstrap-production
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/api/package-lock.json
+      - name: Install Wrangler
+        run: npm ci
+      - name: Check Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Cloudflare GitHub Secrets are required."
+            exit 1
+          fi
+      - name: Provision a missing VAPID pair without logging secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WORKER_URL: https://new-radar-api.lengochao123-27102004.workers.dev
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          const res=await fetch(process.env.WORKER_URL+"/api/push/config",{signal:AbortSignal.timeout(12000)});
+          if(!res.ok)throw new Error("Phase 16 Worker not yet deployed");
+          const config=await res.json();
+          if(typeof config.enabled!=="boolean")throw new Error("Unexpected push config");
+          fs.writeFileSync("/tmp/nr-push-enabled",config.enabled?"yes":"no",{mode:0o600});
+          console.log(config.enabled?"Existing VAPID configuration found. No rotation.":"VAPID not yet configured. Generating key pair.");
+          NODE
+          if [ "$(cat /tmp/nr-push-enabled)" = "yes" ]; then rm -f /tmp/nr-push-enabled; exit 0; fi
+          trap 'rm -f /tmp/nr-vapid-private /tmp/nr-vapid-public /tmp/nr-push-enabled' EXIT
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import {webcrypto} from "node:crypto";
+          const pair=await webcrypto.subtle.generateKey({name:"ECDSA",namedCurve:"P-256"},true,["sign","verify"]);
+          const pub=Buffer.from(await webcrypto.subtle.exportKey("raw",pair.publicKey)).toString("base64url");
+          const jwk=await webcrypto.subtle.exportKey("jwk",pair.privateKey);
+          if(!jwk.d||!pub)throw new Error("Key pair creation failed");
+          fs.writeFileSync("/tmp/nr-vapid-private",jwk.d,{mode:0o600});
+          fs.writeFileSync("/tmp/nr-vapid-public",pub,{mode:0o600});
+          console.log("Unique VAPID pair generated. Values are never logged.");
+          NODE
+          npx wrangler secret put VAPID_PRIVATE_KEY < /tmp/nr-vapid-private
+          npx wrangler secret put VAPID_PUBLIC_KEY < /tmp/nr-vapid-public
+          node --input-type=module <<'NODE'
+          let enabled=false;
+          for(let i=0;i<10;i++){
+            try{
+              const res=await fetch(process.env.WORKER_URL+"/api/push/config",{signal:AbortSignal.timeout(10000)});
+              const result=await res.json();
+              if(result.enabled===true && typeof result.publicKey==="string" && result.publicKey.length>80){
+                enabled=true;break;
+              }
+            }catch{}
+            await new Promise(resolve=>setTimeout(resolve,3000));
+          }
+          if(!enabled)throw new Error("Web Push remains disabled after provisioning.");
+          console.log("Web Push is configured and active in Production.");
+          NODE
