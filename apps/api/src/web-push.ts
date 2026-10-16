@@ -78,10 +78,12 @@ export async function encryptWebPushPayload(subscription:PushSubscriptionData,me
   const recipientKey=await crypto.subtle.importKey("raw",recipientPub,{name:"ECDH",namedCurve:"P-256"},false,[]);
   // Cloudflare's WebCrypto typing widens ECDH generateKey to CryptoKey | CryptoKeyPair.
   // Runtime ECDH generation always returns the key pair.
-  const ephemeral=await crypto.subtle.generateKey({name:"ECDH",namedCurve:"P-256"} as EcKeyGenParams,
+  const ephemeral=await crypto.subtle.generateKey({name:"ECDH",namedCurve:"P-256"} as any,
     true,["deriveBits"]) as CryptoKeyPair;
-  const serverPub=new Uint8Array(await crypto.subtle.exportKey("raw",ephemeral.publicKey));
-  const secret=new Uint8Array(await crypto.subtle.deriveBits({name:"ECDH",public:recipientKey} as unknown as EcdhKeyDeriveParams,ephemeral.privateKey,256));
+  const rawServerPublic = await crypto.subtle.exportKey("raw",ephemeral.publicKey);
+  if (!(rawServerPublic instanceof ArrayBuffer)) throw new Error("Unexpected ECDH key format");
+  const serverPub = new Uint8Array(rawServerPublic);
+  const secret=new Uint8Array(await crypto.subtle.deriveBits({name:"ECDH",public:recipientKey} as any,ephemeral.privateKey,256));
   const ikm=await hkdf(secret,auth,join(utf8("WebPush: info"),new Uint8Array([0]),recipientPub,serverPub),256);
   const salt=crypto.getRandomValues(new Uint8Array(16));
   const cek=await hkdf(ikm,salt,utf8("Content-Encoding: aes128gcm\0"),128);
