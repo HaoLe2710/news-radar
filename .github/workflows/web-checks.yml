@@ -11,6 +11,7 @@ on:
     branches: [main]
     paths:
       - "apps/web/**"
+      - "apps/api/**"
       - ".github/workflows/web-checks.yml"
 
 jobs:
