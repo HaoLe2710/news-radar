@@ -1,9 +1,11 @@
+import { createDailyBrief, currentVietnamDay, readBrief } from "./daily-brief";
 import { groupRelatedStories, type RelatedArticle } from "./story-groups";
 
 import { XMLParser } from "fast-xml-parser";
 
 type AppEnv = {
   DB: D1Database;
+  AI: Ai;
 };
 
 type NewsSource = {
@@ -249,6 +251,16 @@ export default {
       }, { headers });
     }
 
+    if (url.pathname === "/api/daily-brief") {
+      const date = currentVietnamDay();
+      const brief = await readBrief(env, date);
+      return Response.json({
+        data: brief,
+        status: brief ? "ready" : "pending",
+        date,
+      }, { headers });
+    }
+
     if (url.pathname === "/api/story-groups") {
       const region = url.searchParams.get("region") ?? "all";
       const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
@@ -325,5 +337,6 @@ export default {
     env: AppEnv
   ): Promise<void> {
     await ingestNews(env);
+    await createDailyBrief(env);
   },
 } satisfies ExportedHandler<AppEnv>;
