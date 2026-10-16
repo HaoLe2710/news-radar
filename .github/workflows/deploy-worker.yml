@@ -86,7 +86,7 @@ jobs:
         run: |
           node --input-type=module -e '
             const base = process.env.WORKER_URL;
-            for (const route of ["/api/health", "/api/editions/latest", "/api/editions/archive", "/api/magazines/latest", "/api/magazines/archive"]) {
+            for (const route of ["/api/health", "/api/editions/latest", "/api/editions/archive", "/api/magazines/latest", "/api/magazines/archive", "/api/push/config"]) {
               let success = false;
               for (let attempt = 1; attempt <= 5; attempt++) {
                 try {
@@ -97,6 +97,8 @@ jobs:
                     throw new Error("Unexpected edition response");
                   if (route.endsWith("/archive") && !Array.isArray(data.data))
                     throw new Error("Unexpected edition archive response");
+                  if (route.endsWith("/push/config") && typeof data.enabled !== "boolean")
+                    throw new Error("Unexpected Web Push configuration response");
                   if (route.endsWith("/health") && data.status !== "ok")
                     throw new Error("Unexpected health response");
                   console.log(route + ": " + data.status);

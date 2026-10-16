@@ -330,6 +330,11 @@ export default function Home() {
           </div>
         </section>
 
+        <section className="nr-notifications-home" aria-label="Thông báo News Radar">
+          <strong>Nhận thông báo khi có số báo hoặc tạp chí mới</strong>
+          <a href="/notifications/">Cài đặt thông báo →</a>
+        </section>
+
         <section className="nr-pocket-home" aria-label="Thư viện báo offline">
           <span>NEWS RADAR POCKET</span>
           <strong>Đọc báo ngay cả khi mất mạng</strong>

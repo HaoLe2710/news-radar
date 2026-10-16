@@ -20,7 +20,7 @@ export default function PocketLibrary(){
     catch{setError("Không xóa được ấn bản offline. Vui lòng thử lại.");}
   }
   return <main className="nr-pocket-shell">
-    <nav className="nr-reader-top"><Link href="/">← Trang tin</Link><strong>NEWS RADAR · POCKET</strong><Link href="/edition/archive/">Tìm số báo ↗</Link></nav>
+    <nav className="nr-reader-top"><Link href="/">← Trang tin</Link><strong>NEWS RADAR · POCKET</strong><Link href="/notifications/">Thông báo ↗</Link></nav>
     <header className="nr-pocket-heading"><span className="nr-reader-eyebrow">THƯ VIỆN CÁ NHÂN · LƯU NGAY TRÊN MÁY</span><h1>Tủ báo của tôi</h1>
       <p>Những số báo bạn chủ động tải về. Nội dung văn bản có thể đọc không cần mạng sau khi đã mở ứng dụng một lần; ảnh từ nguồn ngoài có thể không khả dụng offline.</p>
       <strong>{items.length} ấn bản đã lưu trên thiết bị</strong>

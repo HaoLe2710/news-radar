@@ -63,3 +63,34 @@ self.addEventListener("fetch",event=>{
     }
   })());
 });
+
+
+/* Phase 16: native Web Push. Only display an explicitly user-visible notification.
+   A notification click may open a same-origin reader path, never an external URL. */
+self.addEventListener("push",event=>{
+  event.waitUntil((async()=>{
+    let data={};
+    try {data=event.data?.json()??{};} catch {}
+    const title=typeof data.title==="string" ? data.title.slice(0,100) : "News Radar · Tin mới";
+    const url=typeof data.url==="string" && data.url.startsWith("/") && !data.url.startsWith("//")
+      ? data.url : "/";
+    const body=typeof data.body==="string" ? data.body.slice(0,220) : "Có số báo mới trong tủ báo của bạn.";
+    const tag=typeof data.tag==="string" ? data.tag.slice(0,120) : "news-radar";
+    await self.registration.showNotification(title,{
+      body,icon:"/icon-192.png",badge:"/icon-192.png",tag,
+      data:{url},renotify:false,
+    });
+  })());
+});
+self.addEventListener("notificationclick",event=>{
+  event.notification.close();
+  event.waitUntil((async()=>{
+    const raw=event.notification.data?.url;
+    const target=typeof raw==="string"&&raw.startsWith("/")&&!raw.startsWith("//") ? raw : "/";
+    const url=new URL(target,self.location.origin).href;
+    const windows=await self.clients.matchAll({type:"window",includeUncontrolled:true});
+    const existing=windows.find(client=>client.url===url);
+    if(existing){await existing.focus();return;}
+    await self.clients.openWindow(url);
+  })());
+});
