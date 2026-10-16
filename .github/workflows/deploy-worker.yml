@@ -86,7 +86,7 @@ jobs:
         run: |
           node --input-type=module -e '
             const base = process.env.WORKER_URL;
-            for (const route of ["/api/health", "/api/editions/latest", "/api/editions/archive"]) {
+            for (const route of ["/api/health", "/api/editions/latest", "/api/editions/archive", "/api/magazines/latest", "/api/magazines/archive"]) {
               let success = false;
               for (let attempt = 1; attempt <= 5; attempt++) {
                 try {
