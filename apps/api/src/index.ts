@@ -1,3 +1,4 @@
+import { groupRelatedStories, type RelatedArticle } from "./story-groups";
 
 import { XMLParser } from "fast-xml-parser";
 
@@ -246,6 +247,25 @@ export default {
         recentlyFetchedSources: sources?.recently_fetched ?? 0,
         lastFetchedAt: sources?.last_fetched_at ?? null,
       }, { headers });
+    }
+
+    if (url.pathname === "/api/story-groups") {
+      const region = url.searchParams.get("region") ?? "all";
+      const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
+      const { results } = await env.DB.prepare(`SELECT
+        a.id, a.title, a.url, a.image_url, a.published_at,
+        s.name AS source, s.region, c.slug AS category
+        FROM articles a
+        JOIN news_sources s ON s.id = a.source_id
+        JOIN categories c ON c.id = s.category_id
+        WHERE a.published_at >= ?
+          AND (? = 'all' OR s.region = ?)
+        ORDER BY a.published_at DESC, a.id DESC
+        LIMIT 300`)
+        .bind(cutoff, region, region).all<RelatedArticle>();
+
+      const groups = groupRelatedStories(results ?? [], 5);
+      return Response.json({ data: groups, count: groups.length, windowHours: 72, method: "headline-lexical-v1" }, { headers });
     }
 
     if (url.pathname === "/api/news") {
