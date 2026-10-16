@@ -28,7 +28,7 @@ export const DEFAULT_PUSH_PREFERENCES: PushPreferences = {
 };
 type Subscriber = {
   id:string; endpoint:string; p256dh:string; auth:string;
-  preferences_json:string;
+  preferences_json:string; created_at:string;
 };
 const CORS_ORIGINS = new Set(["https://news-radar-9px.pages.dev","http://localhost:3000","http://127.0.0.1:3000"]);
 
@@ -153,10 +153,10 @@ type IssueEvent = {kind:"daily"|"weekly"|"topic";key:string;message:Notification
 function notificationsForSubscriber(
   daily:Awaited<ReturnType<typeof latestEdition>>,
   weekly:Awaited<ReturnType<typeof latestWeeklyMagazine>>,
-  preferences:PushPreferences,now:Date
+  preferences:PushPreferences,now:Date,subscribedAt?:string
 ):IssueEvent[]{
   const events:IssueEvent[]=[];
-  if(daily && isRecent(daily.issueDate,2,now)){
+  if(daily && isRecent(daily.issueDate,2,now) && (!subscribedAt || Date.parse(daily.createdAt)>=Date.parse(subscribedAt))){
     if(preferences.daily)events.push({
       kind:"daily",key:daily.issueDate,
       message:{title:"News Radar · Báo ngày mới",body:"Số báo "+daily.issueDate+" đã sẵn sàng để đọc.",url:"/edition/?date="+daily.issueDate,tag:"news-radar-daily-"+daily.issueDate},
@@ -169,7 +169,7 @@ function notificationsForSubscriber(
       });
     }
   }
-  if(weekly && preferences.weekly && isRecent(weekly.issueDate,9,now)){
+  if(weekly && preferences.weekly && isRecent(weekly.issueDate,9,now) && (!subscribedAt || Date.parse(weekly.createdAt)>=Date.parse(subscribedAt))){
     events.push({
       kind:"weekly",key:weekly.weekStart,
       message:{title:"News Radar Weekly · Tạp chí mới",body:"Tổng kết tuần "+weekly.weekStart+" — "+weekly.weekEnd+" đã được xuất bản.",
@@ -214,16 +214,16 @@ export async function deliverPublishedNotifications(env:PushEnv,now=new Date()):
   const [daily,weekly]=await Promise.all([latestEdition(env),latestWeeklyMagazine(env)]);
   if(!daily&&!weekly)return;
   const rows=await env.DB.prepare(
-    "SELECT id,endpoint,p256dh,auth,preferences_json FROM push_subscriptions "+
+    "SELECT id,endpoint,p256dh,auth,preferences_json,created_at FROM push_subscriptions "+
     "ORDER BY last_checked_at ASC LIMIT 12"
   ).all<Subscriber>();
   const subscribers=rows.results??[];
   for(let i=0;i<subscribers.length;i+=3){
     await Promise.all(subscribers.slice(i,i+3).map(async subscriber=>{
-      const preferences=normalizePushPreferences(JSON.parse(subscriber.preferences_json));
       try{
+        const preferences=normalizePushPreferences(JSON.parse(subscriber.preferences_json));
         if(!isQuietNow(preferences,now)){
-          for(const event of notificationsForSubscriber(daily,weekly,preferences,now))
+          for(const event of notificationsForSubscriber(daily,weekly,preferences,now,subscriber.created_at))
             await attemptDelivery(env,subscriber,event);
         }
       }catch(error){console.warn("Push subscriber failed",error instanceof Error?error.message:String(error));}
