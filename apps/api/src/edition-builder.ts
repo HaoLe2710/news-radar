@@ -1,5 +1,9 @@
+import type { EditorialDraft } from "./editorial-engine";
 export type EditionArticle = {
   id: number;
+  editorialSummary?: string;
+  editorialScore?: number;
+  relatedSources?: { title: string; url: string; source: string }[];
   title: string;
   url: string;
   summary: string | null;
@@ -24,6 +28,7 @@ export type NewspaperEdition = {
   articleCount: number;
   sourceCount: number;
   createdAt: string;
+  editorial?: { mode: "ai" | "fallback"; version: string; model: string | null; reason: string; scoredCount: number };
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -51,6 +56,8 @@ export function composeEdition(
   issueDate: string, rows: EditionArticle[],
   savedBrief: { overview: string; mode: "ai" | "headlines" } | null = null,
   createdAt = new Date().toISOString(),
+  editorialDraft: EditorialDraft | null = null,
+  fallbackReason = "unavailable",
 ): NewspaperEdition | null {
   // Snapshots contain only articles available for the previous completed
   // Vietnam calendar day. Never silently include today's live feed.
@@ -64,11 +71,16 @@ export function composeEdition(
 
   // Prefer a recent illustrated lead while keeping headline selection
   // deterministic for repeatable, immutable editions.
-  const lead = sorted.find((article) => article.image_url && article.summary) ?? sorted[0];
+  const ranked = (editorialDraft?.ranked ?? []).map(({id,score}) => {
+    const article = sorted.find(candidate => candidate.id === id);
+    const digest = editorialDraft?.digests.find(item => item.id === id);
+    return article ? { ...article, editorialScore: score, ...(digest ? { editorialSummary: digest.text } : {}) } : null;
+  }).filter((article): article is EditionArticle => article !== null);
+  const lead = ranked[0] ?? sorted.find((article) => article.image_url && article.summary) ?? sorted[0];
   const used = new Set<number>([lead.id]);
   const byCategory = new Map<string, EditionArticle[]>();
-  for (const article of sorted) {
-    if (used.has(article.id)) continue;
+  for (const article of [...ranked.slice(1), ...sorted]) {
+    if (used.has(article.id) || byCategory.get(article.category)?.some(existing => existing.id === article.id)) continue;
     const pool = byCategory.get(article.category) ?? [];
     pool.push(article);
     byCategory.set(article.category, pool);
@@ -102,10 +114,17 @@ export function composeEdition(
     id: issueDate,
     issueDate,
     coverageDate: coverageWindow(issueDate).coverageDate,
-    title: "Những chuyển động đáng chú ý",
-    summary: hasAi ? savedBrief.overview.trim() : fallback,
-    summaryMode: hasAi ? "ai" : "rss",
+    title: editorialDraft?.headline ?? "Những chuyển động đáng chú ý",
+    summary: editorialDraft?.overview ?? (hasAi ? savedBrief!.overview.trim() : fallback),
+    summaryMode: editorialDraft || hasAi ? "ai" : "rss",
     lead, secondary, briefs, radarPool,
     articleCount: included.length, sourceCount, createdAt,
+    editorial: {
+      mode: editorialDraft ? "ai" : "fallback",
+      version: "editorial-v1",
+      model: editorialDraft ? "@cf/meta/llama-3.1-8b-instruct-fp8" : null,
+      reason: editorialDraft ? "success" : fallbackReason,
+      scoredCount: editorialDraft?.ranked.length ?? 0,
+    },
   };
 }
