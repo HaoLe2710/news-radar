@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import OfflineIssueButton from "../../components/OfflineIssueButton";
+import { getOfflineIssue, newestOfflineIssue, offlineKey, getReadingPage, setReadingPage } from "../../lib/offline-library";
 import { DEFAULT_RADAR_PREFERENCES, RADAR_STORAGE_KEY, parseRadarPreferences, type RadarPreferences } from "../../lib/my-radar";
 import { editionSpreads, indexForPage, offsetSpread } from "../../lib/newspaper-pages";
 import { validWeekStart, weeklyHref, weeklyPages, type WeeklyMagazine } from "../../lib/weekly-magazine";
@@ -14,6 +16,7 @@ export default function WeeklyMagazineReader() {
   const [issue, setIssue] = useState<WeeklyMagazine | null>(null);
   const [preferences, setPreferences] = useState<RadarPreferences>(DEFAULT_RADAR_PREFERENCES);
   const [error, setError] = useState("");
+  const [fromOffline, setFromOffline] = useState(false);
   const [loading, setLoading] = useState(true);
   const [wide, setWide] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -34,6 +37,7 @@ export default function WeeklyMagazineReader() {
       setLoading(false);
       return;
     }
+    const explicitPage = params.has("page");
     const page = Number(params.get("page") ?? 1);
     setCurrentPage(Number.isFinite(page) && page > 0 ? Math.floor(page) : 1);
     try { setPreferences(parseRadarPreferences(localStorage.getItem(RADAR_STORAGE_KEY))); } catch {}
@@ -44,9 +48,15 @@ export default function WeeklyMagazineReader() {
         const response = await fetch(API + endpoint, {cache:"no-store",signal:controller.signal});
         if(!response.ok) throw new Error("HTTP " + response.status);
         const body: {data: WeeklyMagazine | null} = await response.json();
-        if(!controller.signal.aborted) setIssue(body.data);
+        if(!controller.signal.aborted){setIssue(body.data);if(body.data&&!explicitPage)setCurrentPage(getReadingPage(offlineKey("weekly",body.data.weekStart)));}
       } catch {
-        if(!controller.signal.aborted) setError("Không tải được tạp chí tuần. Hãy kiểm tra kết nối API.");
+        try {
+          const saved=week ? await getOfflineIssue(offlineKey("weekly",week)) : await newestOfflineIssue("weekly");
+          if(!controller.signal.aborted && saved?.kind==="weekly"){
+            setIssue(saved.payload);setFromOffline(true);
+            if(!explicitPage)setCurrentPage(getReadingPage(saved.key));
+          } else if(!controller.signal.aborted)setError("Không tải được tạp chí tuần và chưa có bản offline.");
+        } catch{if(!controller.signal.aborted)setError("Không tải được tạp chí tuần hoặc bộ nhớ offline.");}
       } finally { if(!controller.signal.aborted) setLoading(false); }
     })();
     return () => controller.abort();
@@ -60,6 +70,7 @@ export default function WeeklyMagazineReader() {
     if(!spreads.length) return;
     const clamped = Math.max(1, Math.min(pages.length, next));
     setCurrentPage(clamped);
+    if(issue)setReadingPage(offlineKey("weekly",issue.weekStart),clamped);
     const url = new URL(window.location.href);
     url.searchParams.set("page", String(clamped));
     window.history.replaceState(null, "", url.pathname + url.search);
@@ -91,12 +102,14 @@ export default function WeeklyMagazineReader() {
     error?<p className="wm-empty" role="alert">{error}</p>:
     !issue?<div className="wm-empty">Tạp chí tuần chưa được xuất bản. Hệ thống sẽ tổng hợp vào thứ Hai sau khi có các số báo ngày.<p><Link href="/magazine/archive/">Xem thư viện tập tuần →</Link></p></div>:
     <>
+      {fromOffline?<p className="nr-offline-banner" role="status">Đang đọc tạp chí đã lưu trên thiết bị. Tin gốc cần kết nối Internet.</p>:null}
       <header className="wm-intro">
         <div><span className="wm-eyebrow">THE WEEKLY REVIEW / {issue.weekStart} — {issue.weekEnd}</span>
           <h1>Cuối tuần đọc gì?</h1>
           <p>Phát hành <WeekDate date={issue.issueDate}/> · {issue.storyCount} câu chuyện · {issue.coverageDays}/7 ngày có báo</p>
         </div>
         <div className="wm-actions">
+          <OfflineIssueButton kind="weekly" issue={issue}/><Link href="/library/">Tủ báo ↗</Link>
           <Link className="wm-action" href={weeklyHref(issue.weekStart,"/magazine/print/")}>In / Lưu PDF ↗</Link>
           <Link href="/magazine/archive/">Tất cả các tập →</Link>
         </div>
