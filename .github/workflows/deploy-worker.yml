@@ -86,7 +86,7 @@ jobs:
         run: |
           node --input-type=module -e '
             const base = process.env.WORKER_URL;
-            for (const route of ["/api/health", "/api/editions/latest"]) {
+            for (const route of ["/api/health", "/api/editions/latest", "/api/editions/archive"]) {
               let success = false;
               for (let attempt = 1; attempt <= 5; attempt++) {
                 try {
@@ -95,6 +95,8 @@ jobs:
                   const data = await response.json();
                   if (route.endsWith("/latest") && !["pending", "ready"].includes(data.status))
                     throw new Error("Unexpected edition response");
+                  if (route.endsWith("/archive") && !Array.isArray(data.data))
+                    throw new Error("Unexpected edition archive response");
                   if (route.endsWith("/health") && data.status !== "ok")
                     throw new Error("Unexpected health response");
                   console.log(route + ": " + data.status);
