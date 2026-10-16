@@ -71,11 +71,11 @@ export function composeEdition(
 
   // Prefer a recent illustrated lead while keeping headline selection
   // deterministic for repeatable, immutable editions.
-  const ranked = (editorialDraft?.ranked ?? []).map(({id,score}) => {
+  const ranked: EditionArticle[] = (editorialDraft?.ranked ?? []).flatMap(({id,score}): EditionArticle[] => {
     const article = sorted.find(candidate => candidate.id === id);
     const digest = editorialDraft?.digests.find(item => item.id === id);
-    return article ? { ...article, editorialScore: score, ...(digest ? { editorialSummary: digest.text } : {}) } : null;
-  }).filter((article): article is EditionArticle => article !== null);
+    return article ? [{ ...article, editorialScore: score, ...(digest ? { editorialSummary: digest.text } : {}) }] : [];
+  });
   const lead = ranked[0] ?? sorted.find((article) => article.image_url && article.summary) ?? sorted[0];
   const used = new Set<number>([lead.id]);
   const byCategory = new Map<string, EditionArticle[]>();
