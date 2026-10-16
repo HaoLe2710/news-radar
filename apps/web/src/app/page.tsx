@@ -17,6 +17,16 @@ type Article = {
 type NewsResponse = { data: Article[]; count: number; total: number; page: number; pageSize: number; totalPages: number };
 type Region = "all" | "vn" | "world";
 type Period = "all" | "24h";
+type DailyBrief = {
+  date: string;
+  overview: string;
+  mode: "ai" | "headlines";
+  createdAt: string;
+  articles: {
+    id: number; title: string; url: string; source: string;
+    category: string; published_at: string | null;
+  }[];
+};
 type RelatedStory = {
   id: number;
   headline: string;
@@ -75,6 +85,9 @@ export default function Home() {
   const [period, setPeriod] = useState<Period>("all");
   const [stats, setStats] = useState<NewsStats | null>(null);
   const [statsError, setStatsError] = useState(false);
+  const [dailyBrief, setDailyBrief] = useState<DailyBrief | null>(null);
+  const [briefLoading, setBriefLoading] = useState(true);
+  const [briefError, setBriefError] = useState(false);
   const [relatedStories, setRelatedStories] = useState<RelatedStory[]>([]);
   const [relatedLoading, setRelatedLoading] = useState(true);
   const [relatedError, setRelatedError] = useState(false);
@@ -93,6 +106,28 @@ export default function Home() {
     const timeout = setTimeout(() => setDebouncedKeyword(keyword), 350);
     return () => clearTimeout(timeout);
   }, [keyword]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    async function loadBrief() {
+      setBriefLoading(true);
+      setBriefError(false);
+      try {
+        const response = await fetch(`${API_URL}/api/daily-brief`, {
+          cache: "no-store", signal: controller.signal,
+        });
+        if (!response.ok) throw new Error("Brief API unavailable");
+        const payload: { data: DailyBrief | null } = await response.json();
+        if (!controller.signal.aborted) setDailyBrief(payload.data ?? null);
+      } catch {
+        if (!controller.signal.aborted) setBriefError(true);
+      } finally {
+        if (!controller.signal.aborted) setBriefLoading(false);
+      }
+    }
+    void loadBrief();
+    return () => controller.abort();
+  }, [refreshKey]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -226,6 +261,38 @@ export default function Home() {
             <span>BẢN TIN</span>
             <strong>{new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "long", year: "numeric" }).format(new Date())}</strong>
           </div>
+        </section>
+
+        <section className="daily-brief" aria-label="Điểm tin buổi sáng">
+          <div className="section-heading">
+            <span>DAILY BRIEF / ĐIỂM TIN BUỔI SÁNG</span>
+            <span>{dailyBrief?.date ?? "BẢN TIN HẰNG NGÀY"}</span>
+          </div>
+          {briefLoading ? (
+            <p className="brief-status">Đang tải bản tin...</p>
+          ) : briefError ? (
+            <p className="brief-status" role="status">Chưa kết nối được API bản tin. Kiểm tra Worker đã deploy Phase 8.</p>
+          ) : dailyBrief ? (
+            <div className="brief-content">
+              <div className="brief-intro">
+                <span className="brief-mode">{dailyBrief.mode === "ai" ? "TỔNG QUAN AI" : "TỔNG HỢP TỪ RSS"}</span>
+                <h3>Thế giới và Việt Nam trong một lượt đọc</h3>
+                <p>{dailyBrief.overview}</p>
+                <small>Đây là điểm tin dựa trên tiêu đề và mô tả RSS, không thay thế bài viết gốc.</small>
+              </div>
+              <div className="brief-articles">
+                {dailyBrief.articles.map((a, index) => (
+                  <a key={a.id} href={a.url} target="_blank" rel="noopener noreferrer">
+                    <span>{String(index + 1).padStart(2, "0")}</span>
+                    <span><strong>{a.title}</strong><small>{a.source}</small></span>
+                    <span aria-hidden="true">↗</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="brief-status">Bản tin đang được chuẩn bị. Hệ thống cần ít nhất 4 bài RSS của ngày hôm trước theo giờ Việt Nam; Cron sẽ tự thử lại trong lần cập nhật kế tiếp.</p>
+          )}
         </section>
 
         <section className="daily-stats" aria-label="Thống kê tin tức">
