@@ -36,11 +36,11 @@ jobs:
               && grep -q "notificationclick" /tmp/sw.js \
               && curl -fLsS --max-time 12 "$SITE/notifications/" -o /tmp/notifications.html \
               && curl -fLsS --max-time 12 "$API/api/push/config" -o /tmp/push.json \
-              && grep -q '"enabled":' /tmp/push.json; then
-              echo "Phase 15 PWA and Phase 16 Web Push configuration endpoint are live."
+              && grep -q '"enabled":true' /tmp/push.json; then
+              echo "Phase 15 PWA and Phase 16 live Web Push (VAPID enabled) verified."
               exit 0
             fi
             sleep 20
           done
-          echo "::error::Production is not serving the Phase 16 UI and API."
+          echo "::error::Production is not serving activated Phase 16 Web Push with VAPID keys."
           exit 1
