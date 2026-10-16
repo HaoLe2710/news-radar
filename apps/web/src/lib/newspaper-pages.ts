@@ -1,5 +1,5 @@
 import type { RadarArticle, RadarPreferences, RadarStory } from "./my-radar.ts";
-import { selectRadarStories } from "./my-radar";
+import { selectRadarStories } from "./my-radar.ts";
 
 export type EditionArticle = RadarArticle;
 export type NewspaperEdition = {
