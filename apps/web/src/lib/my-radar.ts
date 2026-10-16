@@ -12,6 +12,9 @@ export type RadarTopic = (typeof RADAR_TOPICS)[number]["id"];
 export type RadarPreferences = { enabled: boolean; topics: RadarTopic[] };
 export type RadarArticle = {
   id: number;
+  editorialSummary?: string;
+  editorialScore?: number;
+  relatedSources?: { title: string; source: string; url: string }[];
   title: string;
   summary: string | null;
   url: string;

@@ -16,6 +16,7 @@ export type NewspaperEdition = {
   articleCount: number;
   sourceCount: number;
   createdAt: string;
+  editorial?: { mode:"ai"|"fallback"; version:string; model:string|null; reason:string; scoredCount:number };
 };
 
 export type EditionPage =

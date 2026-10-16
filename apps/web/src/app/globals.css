@@ -285,3 +285,11 @@ button:disabled { cursor: wait; opacity: .7; }
 .nr-library-print-link{display:inline-block;align-self:flex-start;margin-top:13px;padding:9px 12px;background:#2e4738;color:#fff;font:700 11px Arial,sans-serif}
 .nr-library-print-link:hover{background:#a43c2c;color:#fff}
 @media(max-width:650px){.nr-reader-intro{align-items:flex-start;flex-direction:column}.nr-reader-print-actions{align-items:flex-start}.nr-reader-print-actions span{display:none}}
+
+
+/* Phase 13: editorial provenance and clustered original sources */
+.nr-ai-note{display:block;color:#7f5940;font:700 10px/1.5 Arial,sans-serif;margin:7px 0}
+.nr-editorial-provenance{margin:12px 0;padding:9px;border-top:1px solid #ac9d8b;border-bottom:1px solid #ac9d8b;color:#815132;font:700 11px/1.4 Arial,sans-serif}
+.nr-related-sources{display:flex;gap:7px;align-items:center;flex-wrap:wrap;font:10px/1.5 Arial,sans-serif;margin-top:8px}
+.nr-related-sources strong{color:#79543c}
+.nr-related-sources a{text-decoration:underline;text-underline-offset:2px}

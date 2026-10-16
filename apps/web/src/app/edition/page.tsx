@@ -30,7 +30,9 @@ function NewspaperStory({ article, number }: { article: EditionArticle; number: 
   return <div className="nr-report">
     <span className="nr-category">{String(number).padStart(2, "0")} / {CATEGORIES[article.category] ?? "Tin tức"}</span>
     <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
-    <p>{article.summary || "Thông tin chi tiết có tại nguồn báo gốc."}</p>
+    <p>{article.editorialSummary || article.summary || "Thông tin chi tiết có tại nguồn báo gốc."}</p>
+  {article.editorialSummary ? <small className="nr-ai-note">Tóm lược bởi AI từ dữ liệu RSS · cần đối chiếu bài gốc</small> : null}
+  {article.relatedSources?.length ? <div className="nr-related-sources"><strong>Cùng sự kiện:</strong> {article.relatedSources.map((source) => <a key={source.url} href={source.url} target="_blank" rel="noopener noreferrer">{source.source} ↗</a>)}</div> : null}
     <OriginalSource article={article}/>
   </div>;
 }
@@ -45,13 +47,16 @@ function PageContents({ page, edition }: { page: EditionPage; edition: Newspaper
         <h2><a href={edition.lead.url} target="_blank" rel="noopener noreferrer">{edition.lead.title}</a></h2>
         {edition.lead.image_url ? <img className="nr-cover-image" src={edition.lead.image_url} alt="" loading="eager"
           onError={(e) => { e.currentTarget.style.display = "none"; }}/> : null}
-        <p>{edition.lead.summary || "Chi tiết có tại nguồn báo gốc."}</p>
+        <p>{edition.lead.editorialSummary || edition.lead.summary || "Chi tiết có tại nguồn báo gốc."}</p>
+        {edition.lead.editorialSummary ? <small className="nr-ai-note">Tóm lược bởi AI từ RSS · kiểm chứng tại nguồn gốc</small> : null}
+        {edition.lead.relatedSources?.length ? <div className="nr-related-sources"><strong>Cùng sự kiện:</strong> {edition.lead.relatedSources.map((source) => <a key={source.url} href={source.url} target="_blank" rel="noopener noreferrer">{source.source} ↗</a>)}</div> : null}
         <OriginalSource article={edition.lead}/>
       </section>
       <aside className="nr-editor-note">
         <span className="nr-category">LỜI TÒA SOẠN</span>
         <h3>{edition.title}</h3>
         <p>{edition.summary}</p>
+        {edition.editorial ? <div className="nr-editorial-provenance">{edition.editorial.mode === "ai" ? "✦ AI Editorial Engine · Biên tập có kiểm tra" : "Biên tập từ RSS · AI dự phòng"} </div> : null}
         <small>{edition.summaryMode === "ai" ? "Bản tóm lược có hỗ trợ AI từ dữ liệu RSS." : "Tổng hợp từ tiêu đề và mô tả RSS."} Không thay thế nội dung gốc.</small>
         <div className="nr-cover-folio">BẢN TIN HẰNG NGÀY · {dateLabel(edition.issueDate)}</div>
       </aside>
@@ -85,7 +90,7 @@ function PageContents({ page, edition }: { page: EditionPage; edition: Newspaper
       : <div className="nr-radar-list">{page.articles.map(({ article, topic }) => <section key={article.id}>
           <span className="nr-category">{RADAR_TOPICS.find((t) => t.id === topic)?.label ?? topic} · {article.source}</span>
           <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
-          <p>{article.summary || "Đọc thêm ở nguồn gốc."}</p>
+          <p>{article.editorialSummary || article.summary || "Đọc thêm ở nguồn gốc."}</p>
         </section>)}</div>}
     <p className="nr-disclaimer">Nội dung của bản tin được tổng hợp từ tiêu đề và mô tả RSS; liên kết dẫn về trang báo xuất bản gốc.</p>
   </>;

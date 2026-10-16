@@ -34,7 +34,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Test edition builder
-        run: node --experimental-strip-types --test test/editions.node.test.mjs
+        run: node --experimental-strip-types --test test/*.node.test.mjs
       - name: Type check Worker
         run: npx tsc --noEmit
       - name: Build Worker (no deployment)

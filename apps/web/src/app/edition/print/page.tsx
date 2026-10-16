@@ -29,7 +29,9 @@ function PrintArticle({ article, order }: { article: EditionArticle; order: numb
   return <article className="pe-news-article">
     <span className="pe-kicker">{String(order).padStart(2, "0")} / {CATEGORIES[article.category] ?? "Tin tức"}</span>
     <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
-    <p>{article.summary || "Thông tin chi tiết có tại nguồn xuất bản."}</p>
+    <p>{article.editorialSummary || article.summary || "Thông tin chi tiết có tại nguồn xuất bản."}</p>
+    {article.editorialSummary ? <small className="pe-ai-note">AI tóm lược từ RSS; vui lòng kiểm tra nguồn gốc.</small> : null}
+    {article.relatedSources?.length ? <div className="pe-related"><strong>Nguồn liên quan:</strong> {article.relatedSources.map((s) => <a key={s.url} href={s.url} target="_blank" rel="noopener noreferrer">{s.source} ↗</a>)}</div> : null}
     <Source article={article}/>
   </article>;
 }
@@ -48,13 +50,16 @@ function PrintPage({ page, edition }: { page: EditionPage; edition: NewspaperEdi
         <h1><a href={edition.lead.url} target="_blank" rel="noopener noreferrer">{edition.lead.title}</a></h1>
         {edition.lead.image_url ? <img className="pe-cover-photo" src={edition.lead.image_url} alt=""
           onError={(event) => { event.currentTarget.style.display = "none"; }}/> : null}
-        <p>{edition.lead.summary || "Mở bài báo gốc để đọc đầy đủ thông tin."}</p>
+        <p>{edition.lead.editorialSummary || edition.lead.summary || "Mở bài báo gốc để đọc đầy đủ thông tin."}</p>
+        {edition.lead.editorialSummary ? <small className="pe-ai-note">AI tóm lược từ RSS · tham khảo nguồn gốc.</small> : null}
+        {edition.lead.relatedSources?.length ? <div className="pe-related"><strong>Nguồn liên quan:</strong> {edition.lead.relatedSources.map((s) => <a key={s.url} href={s.url} target="_blank" rel="noopener noreferrer">{s.source} ↗</a>)}</div> : null}
         <Source article={edition.lead}/>
       </div>
       <aside className="pe-editorial">
         <span className="pe-kicker">LỜI TÒA SOẠN</span>
         <h2>{edition.title}</h2>
         <p>{edition.summary}</p>
+        {edition.editorial ? <div className="pe-editorial-provenance">{edition.editorial.mode === "ai" ? "AI Editorial Engine · Biên tập có kiểm tra" : "Biên tập RSS · AI fallback"}</div> : null}
         <small>{edition.summaryMode === "ai" ? "Tóm lược có hỗ trợ AI, chỉ dựa trên dữ liệu RSS." :
           "Điểm tin dựa trên tiêu đề và mô tả RSS."} Xem nguồn gốc trước khi trích dẫn.</small>
         <div className="pe-cover-date">{issueDateLabel(edition.issueDate)}</div>
@@ -92,7 +97,7 @@ function PrintPage({ page, edition }: { page: EditionPage; edition: NewspaperEdi
       : <div className="pe-personal-grid">{page.articles.map(({ article, topic }) => <article key={article.id}>
         <span className="pe-kicker">{RADAR_TOPICS.find((item) => item.id === topic)?.label ?? topic} · {article.source}</span>
         <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
-        <p>{article.summary || "Mở bài báo gốc để biết chi tiết."}</p>
+        <p>{article.editorialSummary || article.summary || "Mở bài báo gốc để biết chi tiết."}</p>
         <Source article={article}/>
       </article>)}</div>}
   </>;
