@@ -1,0 +1,41 @@
+name: News Radar Pages Production Smoke
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - ".github/workflows/verify-pages.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - ".github/workflows/verify-pages.yml"
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    name: Verify live Cloudflare Pages PWA
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Poll deployed PWA shell
+        env:
+          SITE: https://news-radar-9px.pages.dev
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 25); do
+            echo "Checking Production Pages, attempt $i..."
+            if curl -fLsS --max-time 12 "$SITE/manifest.webmanifest" -o /tmp/manifest.json \
+              && grep -q '"name": "News Radar Pocket' /tmp/manifest.json \
+              && grep -q '/icon-192.png' /tmp/manifest.json \
+              && curl -fLsS --max-time 12 "$SITE/library/" -o /tmp/library.html \
+              && curl -fLsS --max-time 12 "$SITE/sw.js" -o /tmp/sw.js \
+              && grep -q "nr-shell-v15" /tmp/sw.js; then
+              echo "Phase 15 Pages PWA is live."
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "::error::Production Cloudflare Pages is not serving the Phase 15 PWA."
+          exit 1
