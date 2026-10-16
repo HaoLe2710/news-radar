@@ -1,3 +1,4 @@
+import { createEdition, latestEdition, readEdition } from "./editions";
 import { createDailyBrief, currentVietnamDay, readBrief } from "./daily-brief";
 import { groupRelatedStories, type RelatedArticle } from "./story-groups";
 
@@ -251,6 +252,20 @@ export default {
       }, { headers });
     }
 
+    if (url.pathname === "/api/editions/latest") {
+      const edition = await latestEdition(env);
+      return Response.json({ data: edition, status: edition ? "ready" : "pending" }, { headers });
+    }
+
+    if (url.pathname.startsWith("/api/editions/")) {
+      const date = url.pathname.slice("/api/editions/".length);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return Response.json({ error: "Invalid issue date" }, { status: 400, headers });
+      }
+      const edition = await readEdition(env, date);
+      return Response.json({ data: edition, status: edition ? "ready" : "pending" }, { headers });
+    }
+
     if (url.pathname === "/api/daily-brief") {
       const date = currentVietnamDay();
       const brief = await readBrief(env, date);
@@ -338,5 +353,6 @@ export default {
   ): Promise<void> {
     await ingestNews(env);
     await createDailyBrief(env);
+    await createEdition(env);
   },
 } satisfies ExportedHandler<AppEnv>;
