@@ -300,3 +300,33 @@ button:disabled { cursor: wait; opacity: .7; }
 .weekly-entry strong{color:#53382a}
 .weekly-entry .edition-entry-actions a:first-child{background:#6a3d2e}
 .weekly-entry .edition-entry-actions a:first-child:hover{background:#302e25}
+
+
+/* News Radar Pocket (Phase 15): lightweight offline library and save controls. */
+.nr-pocket-home{margin:24px auto;max-width:1190px;display:flex;flex-direction:column;gap:7px;background:#ebe1c9;border:1px solid #c3ac88;padding:23px 30px;color:#342e25}
+.nr-pocket-home>span{font:800 10px Arial,sans-serif;color:#8f3b26;letter-spacing:.16em}
+.nr-pocket-home>strong{font:700 26px Georgia,serif}
+.nr-pocket-home p{font:13px/1.5 Arial,sans-serif;margin:3px 0}
+.nr-pocket-home a{font:700 13px Arial,sans-serif;text-decoration:underline;color:#294c3d;align-self:flex-start}
+.nr-pocket-shell{max-width:1160px;margin:0 auto;padding:24px 25px 60px;color:#26241d}
+.nr-pocket-heading{padding:38px 4px 25px;border-bottom:4px double #514637}
+.nr-pocket-heading h1{font:700 clamp(37px,6vw,65px) Georgia,serif;margin:13px 0}
+.nr-pocket-heading p{font:14px/1.7 Georgia,serif;max-width:700px;color:#6c6253}
+.nr-pocket-heading>strong{font:700 11px Arial,sans-serif;color:#924127;letter-spacing:.07em}
+.nr-pocket-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:21px;margin-top:25px}
+.nr-pocket-card{display:flex;flex-direction:column;justify-content:space-between;gap:27px;min-height:270px;padding:24px;background:#f1e8d6;border:1px solid #b7a68e}
+.nr-pocket-card h2{font:700 25px/1.23 Georgia,serif;overflow-wrap:anywhere}
+.nr-pocket-card p{font:12px Arial,sans-serif;color:#6f6253}
+.nr-pocket-card-actions{display:flex;flex-direction:column;align-items:flex-start;gap:11px}
+.nr-pocket-card-actions a{font:700 12px Arial,sans-serif;color:#244738;text-decoration:underline}
+.nr-pocket-card-actions button{font:700 11px Arial,sans-serif;background:transparent;color:#9c4032;border:0;padding:6px 0;text-decoration:underline;cursor:pointer}
+.nr-pocket-footnote{font:11px/1.7 Arial,sans-serif;color:#766d61;margin-top:30px}
+.nr-offline-action{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
+.nr-offline-action button{border:1px solid #385843;background:#eae2d4;padding:10px 13px;color:#29503e;font:700 12px Arial,sans-serif;cursor:pointer}
+.nr-offline-action button:disabled{opacity:.55;cursor:not-allowed}
+.nr-offline-action button:hover:not(:disabled){background:#315440;color:#fff}
+.nr-offline-status{font:11px/1.4 Arial,sans-serif;color:#775a44;max-width:260px}
+.nr-offline-status:empty{display:none}
+.nr-offline-banner{margin:20px 0 0;border-left:3px solid #90632d;background:#eee2c8;padding:12px 15px;font:700 12px/1.4 Arial,sans-serif}
+@media(max-width:850px){.nr-pocket-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.nr-pocket-shell{padding:13px 10px 45px}.nr-pocket-grid{grid-template-columns:1fr}.nr-pocket-card{min-height:235px}.nr-pocket-home{padding:19px}}
