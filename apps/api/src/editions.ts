@@ -1,6 +1,8 @@
+import { chooseEditorialCandidates, generateEditorial } from "./editorial-engine";
+import { groupRelatedStories } from "./story-groups";
 import { composeEdition, coverageWindow, type EditionArticle, type NewspaperEdition } from "./edition-builder";
 import { currentVietnamDay } from "./daily-brief";
-export interface EditionEnv { DB: D1Database }
+export interface EditionEnv { DB: D1Database; AI?: Ai }
 const CREATE_EDITION = "CREATE TABLE IF NOT EXISTS newspaper_editions (issue_date TEXT PRIMARY KEY, payload_json TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))";
 function validDate(input: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input)) return false;
@@ -30,8 +32,22 @@ export async function createEdition(env: EditionEnv, issueDate = currentVietnamD
   } catch(error) {
     if(!String(error).includes("no such table: daily_briefs")) throw error;
   }
-  const edition = composeEdition(issueDate,results??[],brief);
+  const rows = results ?? [];
+  if (rows.length < 4) return null;
+  const candidates = chooseEditorialCandidates(rows, 24);
+  const { draft, reason } = await generateEditorial(env.AI, issueDate, candidates);
+  console.log("Edition editorial:", issueDate, draft ? "ai" : "fallback", reason);
+  const edition = composeEdition(issueDate, rows, brief, new Date().toISOString(), draft, reason);
   if (!edition) return null;
+  // Group identical events by validated RSS headlines. Only original source links are included.
+  const clusters = groupRelatedStories(rows, 20);
+  for (const article of [edition.lead, ...edition.secondary]) {
+    const matching = clusters.find(group => group.articles.some(item => item.id === article.id));
+    if (matching) {
+      const related = matching.articles.filter(item => item.id !== article.id && item.url !== article.url).slice(0, 3);
+      if (related.length) article.relatedSources = related.map(item => ({title:item.title,source:item.source,url:item.url}));
+    }
+  }
   await env.DB.prepare("INSERT OR IGNORE INTO newspaper_editions(issue_date,payload_json) VALUES(?,?)").bind(issueDate,JSON.stringify(edition)).run();
   return readEdition(env,issueDate);
 }
