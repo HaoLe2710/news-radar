@@ -293,3 +293,10 @@ button:disabled { cursor: wait; opacity: .7; }
 .nr-related-sources{display:flex;gap:7px;align-items:center;flex-wrap:wrap;font:10px/1.5 Arial,sans-serif;margin-top:8px}
 .nr-related-sources strong{color:#79543c}
 .nr-related-sources a{text-decoration:underline;text-underline-offset:2px}
+
+
+/* Phase 14: weekly magazine entry on the daily homepage. */
+.weekly-entry{background:#ede3d0;border-color:#ad977a;margin-top:-14px}
+.weekly-entry strong{color:#53382a}
+.weekly-entry .edition-entry-actions a:first-child{background:#6a3d2e}
+.weekly-entry .edition-entry-actions a:first-child:hover{background:#302e25}

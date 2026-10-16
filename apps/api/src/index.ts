@@ -1,3 +1,5 @@
+import { createWeeklyMagazine, latestWeeklyMagazine, listWeeklyMagazines, readWeeklyMagazine } from "./weekly-magazines";
+import { isValidWeekStart } from "./weekly-builder";
 import { createEdition, latestEdition, readEdition, listEditions } from "./editions";
 import { createDailyBrief, currentVietnamDay, readBrief } from "./daily-brief";
 import { groupRelatedStories, type RelatedArticle } from "./story-groups";
@@ -252,6 +254,26 @@ export default {
       }, { headers });
     }
 
+    if (url.pathname === "/api/magazines" || url.pathname === "/api/magazines/archive") {
+      const page = Number(url.searchParams.get("page") ?? 1);
+      const limit = Number(url.searchParams.get("limit") ?? 12);
+      return Response.json(await listWeeklyMagazines(env, page, limit), { headers });
+    }
+
+    if (url.pathname === "/api/magazines/latest") {
+      const magazine = await latestWeeklyMagazine(env);
+      return Response.json({ data: magazine, status: magazine ? "ready" : "pending" }, { headers });
+    }
+
+    if (url.pathname.startsWith("/api/magazines/")) {
+      const weekStart = url.pathname.slice("/api/magazines/".length);
+      if (!isValidWeekStart(weekStart)) {
+        return Response.json({ error: "Invalid week start (Monday YYYY-MM-DD required)" }, { status: 400, headers });
+      }
+      const magazine = await readWeeklyMagazine(env, weekStart);
+      return Response.json({ data: magazine, status: magazine ? "ready" : "pending" }, { headers });
+    }
+
     if (url.pathname === "/api/editions" || url.pathname === "/api/editions/archive") {
       const page = Number(url.searchParams.get("page") ?? 1);
       const limit = Number(url.searchParams.get("limit") ?? 12);
@@ -361,5 +383,6 @@ export default {
     await ingestNews(env);
     await createDailyBrief(env);
     await createEdition(env);
+    await createWeeklyMagazine(env);
   },
 } satisfies ExportedHandler<AppEnv>;
