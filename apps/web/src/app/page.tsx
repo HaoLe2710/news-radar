@@ -332,7 +332,7 @@ export default function Home() {
 
         <section className="edition-entry" aria-label="Số báo giấy hằng ngày">
           <div><strong>NEWS RADAR — ẤN BẢN BÁO GIẤY</strong><p>Chọn lọc tin tức thành một số báo cố định mỗi ngày, trình bày theo phong cách báo in.</p></div>
-          <a href="/edition/">Mở số báo hôm nay ↗</a>
+          <div className="edition-entry-actions"><a href="/edition/">Mở số báo hôm nay ↗</a><a href="/edition/archive/">Thư viện số báo</a></div>
         </section>
 
         <section className="daily-brief" aria-label="Điểm tin buổi sáng">
