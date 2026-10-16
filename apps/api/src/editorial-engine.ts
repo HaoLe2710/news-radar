@@ -77,7 +77,7 @@ export function parseEditorialResponse(raw: unknown, candidates: EditionArticle[
   const evidence = candidates.map(a => a.title + " " + (a.summary ?? "")).join(" ");
   const headline = safeText(obj.headline, 100);
   const overview = safeText(obj.overview, 700);
-  if (!headline || !overview || !grounded(overview, evidence, 0.16)) return null;
+  if (!headline || !overview || !grounded(headline, evidence, 0.15) || !grounded(overview, evidence, 0.16)) return null;
   if (!Array.isArray(obj.ranked)) return null;
 
   const ranked: EditorialRank[] = [];
