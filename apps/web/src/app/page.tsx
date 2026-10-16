@@ -335,6 +335,17 @@ export default function Home() {
           <div className="edition-entry-actions"><a href="/edition/">Mở số báo hôm nay ↗</a><a href="/edition/archive/">Thư viện số báo</a></div>
         </section>
 
+        <section className="edition-entry weekly-entry" aria-label="Tạp chí tổng kết tuần">
+          <div>
+            <strong>NEWS RADAR WEEKLY — TẠP CHÍ CUỐI TUẦN</strong>
+            <p>Những diễn biến của tuần được tuyển chọn, biên tập và dàn trang thành một tập riêng. Tập tuần mới phát hành vào thứ Hai.</p>
+          </div>
+          <div className="edition-entry-actions">
+            <a href="/magazine/">Đọc tập mới nhất ↗</a>
+            <a href="/magazine/archive/">Thư viện tạp chí</a>
+          </div>
+        </section>
+
         <section className="daily-brief" aria-label="Điểm tin buổi sáng">
           <div className="section-heading">
             <span>DAILY BRIEF / ĐIỂM TIN BUỔI SÁNG</span>
