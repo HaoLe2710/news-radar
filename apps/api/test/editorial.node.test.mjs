@@ -56,6 +56,7 @@ test("invalid ranking, hallucinated numbers or unrelated output falls back", () 
   assert.equal(parseEditorialResponse({...valid,overview:"Hệ thống ngân hàng công bố 9000 tỷ trong báo cáo mới nhất về nền kinh tế."},items),null);
   assert.equal(parseEditorialResponse("nonsense",items),null);
   assert.equal(parseEditorialResponse({...valid,headline:"x"},items),null);
+  assert.equal(parseEditorialResponse({...valid,headline:"Doanh nghiệp công bố doanh thu đạt 99999 tỷ đồng trong ngày"},items),null);
 });
 test("unsupported digest facts are dropped without discarding validated ranking", () => {
   const draft=parseEditorialResponse({...valid,digests:[{id:2,text:"Các nhà khoa học công bố nghiên cứu về năng lượng tái tạo trị giá 99999 tỷ đồng."}]},items);
