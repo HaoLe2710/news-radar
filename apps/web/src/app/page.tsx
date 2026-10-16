@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { DEFAULT_RADAR_PREFERENCES, RADAR_STORAGE_KEY, RADAR_TOPICS, getRadarQueries, parseRadarPreferences, selectRadarStories, type RadarPreferences, type RadarStory } from "../lib/my-radar";
 
 type Article = {
   id: number;
@@ -81,6 +82,11 @@ function RegionLabel({ region }: { region: Article["region"] }) {
 
 export default function Home() {
   const [articles, setArticles] = useState<Article[]>([]);
+  const [radarPrefs, setRadarPrefs] = useState<RadarPreferences>(DEFAULT_RADAR_PREFERENCES);
+  const [radarReady, setRadarReady] = useState(false);
+  const [radarStories, setRadarStories] = useState<RadarStory[]>([]);
+  const [radarLoading, setRadarLoading] = useState(false);
+  const [radarError, setRadarError] = useState(false);
   const [region, setRegion] = useState<Region>("all");
   const [period, setPeriod] = useState<Period>("all");
   const [stats, setStats] = useState<NewsStats | null>(null);
@@ -101,6 +107,67 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+
+  useEffect(() => {
+    try {
+      setRadarPrefs(parseRadarPreferences(window.localStorage.getItem(RADAR_STORAGE_KEY)));
+    } catch {
+      // Private browsing or disabled storage: session-only preferences still work.
+    }
+    setRadarReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!radarReady) return;
+    try {
+      window.localStorage.setItem(RADAR_STORAGE_KEY, JSON.stringify(radarPrefs));
+    } catch {
+      // Storage is optional; never prevent reading the news.
+    }
+  }, [radarPrefs, radarReady]);
+
+  useEffect(() => {
+    if (!radarReady || !radarPrefs.enabled || radarPrefs.topics.length === 0) {
+      setRadarStories([]);
+      setRadarError(false);
+      setRadarLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    async function loadRadar() {
+      setRadarLoading(true);
+      setRadarError(false);
+      const queries = getRadarQueries(radarPrefs.topics);
+      try {
+        const results = await Promise.allSettled(queries.map(async ({ category, q }) => {
+          const params = new URLSearchParams({
+            region: "all", category, q, period: "all", page: "1", pageSize: "50",
+          });
+          const response = await fetch(`${API_URL}/api/news?${params}`, {
+            signal: controller.signal, cache: "no-store",
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const payload: NewsResponse = await response.json();
+          if (!Array.isArray(payload.data)) throw new Error("Unexpected news payload");
+          return payload.data;
+        }));
+        if (controller.signal.aborted) return;
+        const successful = results.filter((result): result is PromiseFulfilledResult<Article[]> =>
+          result.status === "fulfilled");
+        if (successful.length === 0) {
+          setRadarStories([]);
+          setRadarError(true);
+        } else {
+          setRadarStories(selectRadarStories(successful.flatMap((result) => result.value), radarPrefs.topics));
+          setRadarError(successful.length !== results.length);
+        }
+      } finally {
+        if (!controller.signal.aborted) setRadarLoading(false);
+      }
+    }
+    void loadRadar();
+    return () => controller.abort();
+  }, [radarReady, radarPrefs, refreshKey]);
 
   useEffect(() => {
     const timeout = setTimeout(() => setDebouncedKeyword(keyword), 350);
@@ -292,6 +359,72 @@ export default function Home() {
             </div>
           ) : (
             <p className="brief-status">Bản tin đang được chuẩn bị. Hệ thống cần ít nhất 4 bài RSS của ngày hôm trước theo giờ Việt Nam; Cron sẽ tự thử lại trong lần cập nhật kế tiếp.</p>
+          )}
+        </section>
+
+        <section className="my-radar" aria-label="Bản tin cá nhân My Radar">
+          <div className="section-heading">
+            <span>MY RADAR / DÀNH RIÊNG CHO BẠN</span>
+            <span>LƯU SỞ THÍCH TRÊN THIẾT BỊ</span>
+          </div>
+          <div className="radar-preferences">
+            <div className="radar-pref-heading">
+              <div>
+                <p className="section-kicker">YOUR PERSONAL EDITION</p>
+                <h2>Bản tin theo sở thích</h2>
+                <p>Ưu tiên các chủ đề bạn quan tâm. Bạn vẫn có thể xem toàn bộ tin ở bên dưới.</p>
+              </div>
+              <label className="radar-switch">
+                <input type="checkbox" checked={radarPrefs.enabled}
+                  onChange={(event) => setRadarPrefs((prev) => ({ ...prev, enabled: event.target.checked }))} />
+                <span>Bật My Radar</span>
+              </label>
+            </div>
+            <div className="radar-topics" role="group" aria-label="Chọn chủ đề ưu tiên">
+              {RADAR_TOPICS.map((topic) => {
+                const selected = radarPrefs.topics.includes(topic.id);
+                return (
+                  <button type="button" key={topic.id} aria-pressed={selected}
+                    className={`radar-chip ${selected ? "selected" : ""}`}
+                    onClick={() => setRadarPrefs((prev) => ({
+                      ...prev,
+                      topics: prev.topics.includes(topic.id)
+                        ? prev.topics.filter((id) => id !== topic.id)
+                        : [...prev.topics, topic.id],
+                    }))}>
+                    {selected ? "✓ " : "+ "}{topic.label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="radar-note">AI được nhận diện từ tiêu đề và mô tả RSS; các chủ đề khác theo chuyên mục của nguồn. Không cần tài khoản.</p>
+          </div>
+          {radarReady && radarPrefs.enabled ? (
+            radarPrefs.topics.length === 0 ? (
+              <div className="radar-empty" role="status">Chọn ít nhất một chủ đề để tạo bản tin của bạn.</div>
+            ) : radarLoading ? (
+              <div className="radar-empty" role="status">Đang chọn tin phù hợp với sở thích...</div>
+            ) : radarStories.length === 0 ? (
+              <div className="radar-empty" role="status">Chưa tìm được tin phù hợp. Hãy thử chọn thêm chủ đề hoặc tải lại tin.</div>
+            ) : (
+              <>
+                {radarError ? <p className="radar-warning" role="status">Một số nguồn chưa tải được; đang hiển thị các tin tìm thấy.</p> : null}
+                <div className="radar-grid">
+                  {radarStories.map(({ article, topic }) => (
+                    <article className="radar-card" key={article.id}>
+                      <div className="radar-card-meta"><span>{RADAR_TOPICS.find((item) => item.id === topic)?.label}</span><span>{article.region === "vn" ? "Việt Nam" : "Thế giới"}</span></div>
+                      <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
+                      <p>{article.summary || "Mở bài gốc để đọc thêm."}</p>
+                      <div className="radar-card-footer"><span>{article.source}</span><time dateTime={article.published_at ?? undefined}>{formatDate(article.published_at)}</time></div>
+                    </article>
+                  ))}
+                </div>
+              </>
+            )
+          ) : radarReady ? (
+            <div className="radar-empty" role="status">My Radar đang tắt. Bật lại khi bạn muốn xem tin theo sở thích.</div>
+          ) : (
+            <div className="radar-empty">Đang tải sở thích...</div>
           )}
         </section>
 
