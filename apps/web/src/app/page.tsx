@@ -17,6 +17,15 @@ type Article = {
 type NewsResponse = { data: Article[]; count: number; total: number; page: number; pageSize: number; totalPages: number };
 type Region = "all" | "vn" | "world";
 type Period = "all" | "24h";
+type RelatedStory = {
+  id: number;
+  headline: string;
+  image_url: string | null;
+  region: string;
+  category: string;
+  articleCount: number;
+  articles: { id: number; title: string; url: string; source: string; published_at: string | null }[];
+};
 type NewsStats = {
   totalArticles: number;
   last24h: number;
@@ -66,6 +75,7 @@ export default function Home() {
   const [period, setPeriod] = useState<Period>("all");
   const [stats, setStats] = useState<NewsStats | null>(null);
   const [statsError, setStatsError] = useState(false);
+  const [relatedStories, setRelatedStories] = useState<RelatedStory[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -81,6 +91,24 @@ export default function Home() {
     const timeout = setTimeout(() => setDebouncedKeyword(keyword), 350);
     return () => clearTimeout(timeout);
   }, [keyword]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    async function loadRelatedStories() {
+      try {
+        const response = await fetch(`${API_URL}/api/story-groups?region=${region}`, {
+          signal: controller.signal, cache: "no-store",
+        });
+        if (!response.ok) throw new Error("Unable to load story groups");
+        const payload: { data: RelatedStory[] } = await response.json();
+        if (!controller.signal.aborted) setRelatedStories(Array.isArray(payload.data) ? payload.data : []);
+      } catch {
+        if (!controller.signal.aborted) setRelatedStories([]);
+      }
+    }
+    void loadRelatedStories();
+    return () => controller.abort();
+  }, [refreshKey, region]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -219,6 +247,31 @@ export default function Home() {
               aria-pressed={period === "24h"} onClick={() => { setPeriod("24h"); setPage(1); }}>24 giờ qua</button>
           </div>
         </div>
+
+        {relatedStories.length > 0 && !debouncedKeyword && category === "all" && period === "all" ? (
+          <section className="related-section" aria-label="Tin cùng sự kiện">
+            <div className="section-heading">
+              <span>TIN LIÊN QUAN · NHIỀU NGUỒN</span>
+              <span>GOM THEO TIÊU ĐỀ · 72 GIỜ</span>
+            </div>
+            <div className="related-grid">
+              {relatedStories.map((story) => (
+                <article className="related-story" key={story.id}>
+                  <span className="related-count">{story.articleCount} bài liên quan</span>
+                  <h3>{story.headline}</h3>
+                  <div className="related-links">
+                    {story.articles.map((article) => (
+                      <a key={article.id} href={article.url} target="_blank" rel="noopener noreferrer">
+                        <strong>{article.source}</strong> · {article.title} ↗
+                      </a>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+            <p className="related-disclaimer">Nhóm dựa trên độ giống tiêu đề, không khẳng định các bài cùng một sự kiện.</p>
+          </section>
+        ) : null}
 
         <div className="filter-bar">
           <label className="search-wrap">
