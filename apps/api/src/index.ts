@@ -1,4 +1,4 @@
-import { createEdition, latestEdition, readEdition } from "./editions";
+import { createEdition, latestEdition, readEdition, listEditions } from "./editions";
 import { createDailyBrief, currentVietnamDay, readBrief } from "./daily-brief";
 import { groupRelatedStories, type RelatedArticle } from "./story-groups";
 
@@ -250,6 +250,13 @@ export default {
         recentlyFetchedSources: sources?.recently_fetched ?? 0,
         lastFetchedAt: sources?.last_fetched_at ?? null,
       }, { headers });
+    }
+
+    if (url.pathname === "/api/editions" || url.pathname === "/api/editions/archive") {
+      const page = Number(url.searchParams.get("page") ?? 1);
+      const limit = Number(url.searchParams.get("limit") ?? 12);
+      const archive = await listEditions(env, page, limit);
+      return Response.json(archive, { headers });
     }
 
     if (url.pathname === "/api/editions/latest") {

@@ -44,3 +44,55 @@ export async function latestEdition(env: EditionEnv): Promise<NewspaperEdition |
     throw error;
   }
 }
+
+export type EditionArchiveItem = {
+  issueDate: string;
+  createdAt: string;
+  headline: string;
+  coverImage: string | null;
+  articleCount: number;
+  sourceCount: number;
+};
+
+type EditionArchiveRow = {
+  issue_date: string;
+  created_at: string;
+  headline: string | null;
+  cover_image: string | null;
+  article_count: number | null;
+  source_count: number | null;
+};
+
+export async function listEditions(env: EditionEnv, requestedPage: number, requestedLimit = 12) {
+  const page = Number.isFinite(requestedPage) ? Math.min(1000, Math.max(1, Math.floor(requestedPage))) : 1;
+  const limit = Number.isFinite(requestedLimit) ? Math.min(24, Math.max(1, Math.floor(requestedLimit))) : 12;
+  const empty = { data: [] as EditionArchiveItem[], page, pageSize: limit, total: 0, hasNext: false };
+  try {
+    const [counter, rows] = await Promise.all([
+      env.DB.prepare("SELECT COUNT(*) AS total FROM newspaper_editions").first<{ total: number }>(),
+      env.DB.prepare(
+        "SELECT issue_date, created_at," +
+        " json_extract(payload_json, '$.lead.title') AS headline," +
+        " json_extract(payload_json, '$.lead.image_url') AS cover_image," +
+        " json_extract(payload_json, '$.articleCount') AS article_count," +
+        " json_extract(payload_json, '$.sourceCount') AS source_count" +
+        " FROM newspaper_editions ORDER BY issue_date DESC LIMIT ? OFFSET ?"
+      ).bind(limit, (page - 1) * limit).all<EditionArchiveRow>(),
+    ]);
+    const total = counter?.total ?? 0;
+    return {
+      data: (rows.results ?? []).map((row) => ({
+        issueDate: row.issue_date,
+        createdAt: row.created_at,
+        headline: row.headline ?? "Ấn bản News Radar",
+        coverImage: row.cover_image,
+        articleCount: row.article_count ?? 0,
+        sourceCount: row.source_count ?? 0,
+      })),
+      page, pageSize: limit, total, hasNext: page * limit < total,
+    };
+  } catch (error) {
+    if (String(error).includes("no such table: newspaper_editions")) return empty;
+    throw error;
+  }
+}
