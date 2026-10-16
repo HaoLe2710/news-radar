@@ -10,7 +10,7 @@ type BriefRecord = {
   brief_date: string; overview: string; articles_json: string;
   generation_mode: "ai" | "headlines"; created_at: string;
 };
-const MODEL = "@cf/meta/llama-3.1-8b-instruct";
+const MODEL = "@cf/meta/llama-3.1-8b-instruct-fp8";
 const TZ = "Asia/Ho_Chi_Minh";
 function day(now: Date) {
   return new Intl.DateTimeFormat("en-CA", {timeZone: TZ,year:"numeric",month:"2-digit",day:"2-digit"}).format(now);
@@ -22,9 +22,24 @@ function startOfDayUTC(date: string) {
 function previousDay(date: string) {
   return new Date(Date.parse(startOfDayUTC(date)) - 86400000).toISOString();
 }
+const CREATE_BRIEFS_TABLE = `CREATE TABLE IF NOT EXISTS daily_briefs (
+  brief_date TEXT PRIMARY KEY,
+  overview TEXT NOT NULL,
+  articles_json TEXT NOT NULL,
+  generation_mode TEXT NOT NULL CHECK (generation_mode IN (\'ai\', \'headlines\')),
+  ai_model TEXT,
+  created_at TEXT NOT NULL DEFAULT (strftime(\'%Y-%m-%dT%H:%M:%fZ\', \'now\'))
+)`;
+
 export async function readBrief(env: BriefEnv, date: string) {
-  const saved = await env.DB.prepare("SELECT * FROM daily_briefs WHERE brief_date = ?")
-    .bind(date).first<BriefRecord>();
+  let saved: BriefRecord | null;
+  try {
+    saved = await env.DB.prepare("SELECT * FROM daily_briefs WHERE brief_date = ?")
+      .bind(date).first<BriefRecord>();
+  } catch (error) {
+    if (String(error).includes("no such table: daily_briefs")) return null;
+    throw error;
+  }
   if (!saved) return null;
   return {
     date: saved.brief_date,
@@ -35,6 +50,8 @@ export async function readBrief(env: BriefEnv, date: string) {
   };
 }
 export async function createDailyBrief(env: BriefEnv, now = new Date()) {
+  // Idempotent schema bootstrap for Git-connected Worker deployments.
+  await env.DB.prepare(CREATE_BRIEFS_TABLE).run();
   const date = day(now);
   const saved = await readBrief(env, date);
   if (saved) return saved;
