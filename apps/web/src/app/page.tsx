@@ -330,6 +330,12 @@ export default function Home() {
           </div>
         </section>
 
+        <section className="nr-pocket-home" aria-label="Thư viện báo offline">
+          <span>NEWS RADAR POCKET</span>
+          <strong>Đọc báo ngay cả khi mất mạng</strong>
+          <p>Lưu ấn bản và ghi nhớ trang đang đọc trên thiết bị của bạn.</p>
+          <a href="/library/">Mở tủ báo cá nhân →</a>
+        </section>
         <section className="edition-entry" aria-label="Số báo giấy hằng ngày">
           <div><strong>NEWS RADAR — ẤN BẢN BÁO GIẤY</strong><p>Chọn lọc tin tức thành một số báo cố định mỗi ngày, trình bày theo phong cách báo in.</p></div>
           <div className="edition-entry-actions"><a href="/edition/">Mở số báo hôm nay ↗</a><a href="/edition/archive/">Thư viện số báo</a></div>
