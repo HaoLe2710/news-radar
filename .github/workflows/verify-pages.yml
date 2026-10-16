@@ -22,6 +22,7 @@ jobs:
       - name: Poll deployed PWA shell
         env:
           SITE: https://news-radar-9px.pages.dev
+          API: https://new-radar-api.lengochao123-27102004.workers.dev
         run: |
           set -euo pipefail
           for i in $(seq 1 25); do
@@ -31,11 +32,15 @@ jobs:
               && grep -q '/icon-192.png' /tmp/manifest.json \
               && curl -fLsS --max-time 12 "$SITE/library/" -o /tmp/library.html \
               && curl -fLsS --max-time 12 "$SITE/sw.js" -o /tmp/sw.js \
-              && grep -q "nr-shell-v15" /tmp/sw.js; then
-              echo "Phase 15 Pages PWA is live."
+              && grep -q "nr-shell-v15" /tmp/sw.js \
+              && grep -q "notificationclick" /tmp/sw.js \
+              && curl -fLsS --max-time 12 "$SITE/notifications/" -o /tmp/notifications.html \
+              && curl -fLsS --max-time 12 "$API/api/push/config" -o /tmp/push.json \
+              && grep -q '"enabled":' /tmp/push.json; then
+              echo "Phase 15 PWA and Phase 16 Web Push configuration endpoint are live."
               exit 0
             fi
             sleep 20
           done
-          echo "::error::Production Cloudflare Pages is not serving the Phase 15 PWA."
+          echo "::error::Production is not serving the Phase 16 UI and API."
           exit 1
