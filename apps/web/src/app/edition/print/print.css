@@ -80,3 +80,10 @@
   img{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .pe-sheet{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+
+
+/* Phase 13: source-backed AI digests remain visibly labeled in printed editions. */
+.pe-ai-note{display:block;margin-top:6px;font:700 9px/1.4 Arial,sans-serif;color:#79553b}
+.pe-editorial-provenance{border-top:1px solid #aca394;border-bottom:1px solid #aca394;padding:7px 0;margin:9px 0;font:700 9px/1.45 Arial,sans-serif;color:#734d35}
+.pe-related{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;font:9px/1.4 Arial,sans-serif}
+.pe-related a{text-decoration:underline;text-underline-offset:2px}
