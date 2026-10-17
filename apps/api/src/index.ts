@@ -1,4 +1,4 @@
-import { handleAskApi } from "./ask-news";
+import { cleanupAskRateLimits, handleAskApi } from "./ask-news";
 import { deliverPublishedNotifications, handlePushApi } from "./push-notifications";
 import { createWeeklyMagazine, latestWeeklyMagazine, listWeeklyMagazines, readWeeklyMagazine } from "./weekly-magazines";
 import { isValidWeekStart } from "./weekly-builder";
@@ -395,6 +395,7 @@ export default {
     await createDailyBrief(env);
     await createEdition(env);
     await createWeeklyMagazine(env);
+    try { await cleanupAskRateLimits(env); } catch (error) { console.error("Optional Ask quota cleanup failed", error); }
     try {
       await deliverPublishedNotifications(env);
     } catch (error) {
