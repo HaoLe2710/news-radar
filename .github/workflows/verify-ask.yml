@@ -1,0 +1,74 @@
+name: News Radar Ask Production Acceptance
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/verify-ask.yml"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/verify-ask.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  accept:
+    name: Verify Ask page and live cited-answer API
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Poll live Cloudflare Pages and Ask Worker
+        env:
+          SITE: https://news-radar-9px.pages.dev
+          API: https://new-radar-api.lengochao123-27102004.workers.dev
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 18); do
+            echo "Phase 17 Production acceptance attempt $i..."
+            if curl -fLsS --max-time 15 -H 'Cache-Control: no-cache' "$SITE/ask/" -o /tmp/news-radar-ask.html \
+              && grep -q 'nr-ask-shell' /tmp/news-radar-ask.html \
+              && curl -fLsS --max-time 12 "$API/api/ask/status" -o /tmp/news-radar-ask-status.json \
+              && node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          const status = JSON.parse(fs.readFileSync("/tmp/news-radar-ask-status.json","utf8"));
+          if (status.status !== "ok" || status.retrieval !== "edition-snapshots") {
+            process.exitCode = 1;
+          }
+          NODE
+            then
+              echo "Phase 17 page and Worker status route are live. Checking real POST contract..."
+              if curl -fLsS --max-time 45 "$API/api/ask" \
+                  -H "Origin: $SITE" \
+                  -H "Content-Type: application/json" \
+                  --data '{"question":"Có những tin công nghệ nào đáng chú ý trong số báo gần đây không?","filters":{"period":"all","category":"technology"}}' \
+                  -o /tmp/news-radar-ask-answer.json \
+                && node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          const payload = JSON.parse(fs.readFileSync("/tmp/news-radar-ask-answer.json","utf8"));
+          const data = payload?.data;
+          if (!data || typeof data.answer !== "string" || !data.answer.length ||
+              !Array.isArray(data.citations) ||
+              !["ai","sources_only","no_evidence"].includes(data.mode)) {
+            throw new Error("Unexpected live Ask POST response");
+          }
+          for (const citation of data.citations) {
+            if (!/^S[1-6]$/.test(citation.id) ||
+                !/^https?:\/\//.test(citation.url) ||
+                !citation.editionUrl?.startsWith("/")) {
+              throw new Error("Invalid citation provenance");
+            }
+          }
+          console.log("Live Ask POST accepted; mode=" + data.mode + "; citations=" + data.citations.length);
+          NODE
+              then
+                echo "Phase 17 Production acceptance passed."
+                exit 0
+              fi
+            fi
+            sleep 15
+          done
+          echo "::error::Phase 17 production page or live Ask POST is not ready."
+          exit 1
