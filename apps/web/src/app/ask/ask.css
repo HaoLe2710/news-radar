@@ -1,0 +1,63 @@
+/* Phase 17 — newspaper research desk; independent responsive styling. */
+.nr-ask-shell{max-width:1140px;margin:0 auto;padding:25px 30px 65px;color:#302b24;font-family:Georgia,"Times New Roman",serif}
+.nr-ask-nav{display:flex;justify-content:space-between;align-items:center;gap:14px;border-bottom:2px solid #40372c;padding:12px 0 17px;font:700 11px Arial,sans-serif}
+.nr-ask-nav strong{letter-spacing:.12em}
+.nr-ask-nav a:hover{color:#a14530}
+.nr-ask-heading{margin:54px 0 39px;max-width:850px}
+.nr-ask-eyebrow,.nr-ask-section-label{font:800 11px/1.5 Arial,sans-serif;letter-spacing:.15em;color:#8c4933}
+.nr-ask-heading h1{font:700 clamp(56px,9vw,112px)/.98 Georgia,serif;letter-spacing:-.07em;margin:16px 0 22px}
+.nr-ask-heading>p{font:20px/1.6 Georgia,serif;max-width:680px;color:#4d463d}
+.nr-ask-method{font:700 11px/1.5 Arial,sans-serif;border-top:1px solid #9c917e;padding-top:14px;margin-top:24px}
+.nr-ask-intro{margin:30px 0 45px}
+.nr-ask-section-label{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid #a99d8b;padding-bottom:11px;margin-bottom:20px}
+.nr-ask-examples{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.nr-ask-examples button{background:#f0e9da;border:1px solid #c8b9a6;border-radius:0;padding:19px 18px;text-align:left;cursor:pointer;display:flex;justify-content:space-between;gap:18px;align-items:center;font:700 16px/1.3 Georgia,serif;color:#393126}
+.nr-ask-examples button span{color:#a0482e;font:700 20px Arial,sans-serif}
+.nr-ask-examples button:hover{background:#e3d7c4;border-color:#9b8771}
+.nr-ask-desk{background:#faf6ed;border:1px solid #b9ab95;padding:25px 30px;box-shadow:0 12px 32px #3a2b1720}
+.nr-ask-welcome{text-align:center;padding:70px 10px 76px}
+.nr-ask-sparkle{font:48px Georgia,serif;color:#945237}
+.nr-ask-welcome h2{font:700 clamp(23px,3vw,31px) Georgia,serif;margin:9px 0 12px}
+.nr-ask-welcome p{max-width:540px;margin:0 auto;color:#72695b;font:14px/1.7 Georgia,serif}
+.nr-ask-clear{background:transparent;border:0;text-decoration:underline;cursor:pointer;font:700 11px Arial,sans-serif;color:#795c47}
+.nr-ask-clear:disabled{opacity:.4;cursor:default}
+.nr-ask-messages{display:grid;gap:35px;padding:8px 0 30px}
+.nr-ask-exchange{display:grid;gap:15px}
+.nr-ask-user{margin-left:auto;max-width:82%;background:#e7decf;padding:15px 22px}
+.nr-ask-user span{font:800 10px Arial,sans-serif;letter-spacing:.1em;color:#89604a}
+.nr-ask-user p{font:700 17px/1.45 Georgia,serif;margin:9px 0 1px}
+.nr-ask-response{background:#fffcf7;border-left:3px solid #8b4730;padding:21px 25px;box-shadow:0 2px 10px #2d231a12}
+.nr-ask-response-top{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;color:#774d36;font:700 11px Arial,sans-serif}
+.nr-ask-response>p{white-space:pre-wrap;font:16px/1.75 Georgia,serif;margin:20px 0}
+.nr-ask-response>small{display:block;margin-top:16px;font:11px/1.6 Arial,sans-serif;color:#766d62}
+.nr-ask-sources{border-top:1px solid #c6b9a8;margin-top:23px;padding-top:14px;display:grid;gap:13px}
+.nr-ask-sources h3{font:800 10px Arial,sans-serif;letter-spacing:.13em;margin:0}
+.nr-ask-source{display:grid;gap:5px;padding:11px 0;border-bottom:1px solid #ded3c3}
+.nr-ask-source>span{font:700 10px Arial,sans-serif;color:#796959}
+.nr-ask-source>a:first-of-type{font:700 15px/1.38 Georgia,serif;text-decoration:underline;text-underline-offset:3px}
+.nr-ask-source>a:last-of-type{font:11px Arial,sans-serif;color:#926342}
+.nr-ask-followups{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:20px}
+.nr-ask-followups strong{font:800 10px Arial,sans-serif;letter-spacing:.12em}
+.nr-ask-followups button{background:#e9dfd1;border:1px solid #cfbdaa;padding:7px 12px;text-align:left;font:12px/1.4 Arial,sans-serif;cursor:pointer}
+.nr-ask-followups button:hover{background:#dcd0bd}
+.nr-ask-form{border-top:3px double #6b5b4e;padding-top:23px;display:grid;gap:12px}
+.nr-ask-form>label{font:800 11px Arial,sans-serif;letter-spacing:.12em}
+.nr-ask-form textarea{font:16px/1.55 Georgia,serif;resize:vertical;width:100%;box-sizing:border-box;min-height:96px;background:#fffef9;color:#25211c;padding:15px;border:1px solid #a99b87}
+.nr-ask-form textarea:focus,.nr-ask-filters select:focus,.nr-ask-date-range input:focus{outline:2px solid #7c4c37;outline-offset:2px}
+.nr-ask-filters{display:flex;flex-wrap:wrap;gap:13px;align-items:end}
+.nr-ask-filters label,.nr-ask-date-range label{font:700 10px/1.5 Arial,sans-serif;color:#6e5d4b;display:grid;gap:5px}
+.nr-ask-filters select,.nr-ask-date-range input{border:1px solid #b4a693;background:#f8f3e9;color:#302b25;padding:10px;font:12px Arial,sans-serif;min-width:160px}
+.nr-ask-filter-toggle,.nr-ask-date-range button{border:0;background:transparent;cursor:pointer;text-decoration:underline;color:#6f4c36;padding:11px 2px;font:700 12px Arial,sans-serif}
+.nr-ask-date-range{display:flex;flex-wrap:wrap;gap:13px;align-items:end}
+.nr-ask-send{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-top:7px;font:11px Arial,sans-serif;color:#71675c}
+.nr-ask-send button{background:#2f4736;border:1px solid #2f4736;color:#fff;padding:13px 22px;font:700 12px Arial,sans-serif;cursor:pointer}
+.nr-ask-send button:not(:disabled):hover{background:#97422b}
+.nr-ask-send button:disabled{opacity:.5;cursor:default}
+.nr-ask-error,.nr-ask-offline{padding:15px 17px;background:#f0dfcd;border-left:3px solid #ae5437;font:13px/1.6 Arial,sans-serif}
+.nr-ask-offline{margin:19px 0}
+.nr-ask-footer{margin-top:32px;border-top:2px solid #534333;padding-top:16px;font:12px/1.65 Arial,sans-serif;color:#756a5d}
+.nr-ask-footer p{max-width:980px}
+.nr-ask-entry{background:#ebe3d5;border-color:#a98a71}
+.nr-ask-entry .edition-entry-actions a:first-child{background:#7e3e2c}
+@media(max-width:750px){.nr-ask-shell{padding:16px 12px 45px}.nr-ask-heading{margin:38px 0 30px}.nr-ask-heading h1{font-size:clamp(48px,12vw,78px)}.nr-ask-heading>p{font-size:17px}.nr-ask-examples{grid-template-columns:1fr}.nr-ask-desk{padding:19px 14px}.nr-ask-nav strong{font-size:10px}.nr-ask-user{max-width:96%}.nr-ask-response{padding:18px 14px}.nr-ask-filters{display:grid;grid-template-columns:1fr 1fr}.nr-ask-filters select{min-width:0;width:100%}.nr-ask-filter-toggle{text-align:left}.nr-ask-welcome{padding:45px 5px}.nr-ask-source>a:first-of-type{font-size:14px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important}}
