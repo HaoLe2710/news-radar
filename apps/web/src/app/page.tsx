@@ -357,6 +357,16 @@ export default function Home() {
           </div>
         </section>
 
+        <section className="edition-entry nr-ask-entry" aria-label="Trợ lý hỏi đáp tin tức">
+          <div><strong>✦ ASK NEWS RADAR — HỎI TỜ BÁO BẰNG AI</strong>
+            <p>Hỏi đáp về tin tức đã xuất bản, tìm kiếm theo ngày và chuyên mục; mọi kết quả đều dẫn về nguồn bài báo gốc.</p>
+          </div>
+          <div className="edition-entry-actions">
+            <a href="/ask/">Đặt câu hỏi cho AI ↗</a>
+            <a href="/edition/archive/">Tra cứu số báo</a>
+          </div>
+        </section>
+
         <section className="daily-brief" aria-label="Điểm tin buổi sáng">
           <div className="section-heading">
             <span>DAILY BRIEF / ĐIỂM TIN BUỔI SÁNG</span>

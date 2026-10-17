@@ -1,3 +1,4 @@
+import { cleanupAskRateLimits, handleAskApi } from "./ask-news";
 import { deliverPublishedNotifications, handlePushApi } from "./push-notifications";
 import { createWeeklyMagazine, latestWeeklyMagazine, listWeeklyMagazines, readWeeklyMagazine } from "./weekly-magazines";
 import { isValidWeekStart } from "./weekly-builder";
@@ -211,6 +212,9 @@ export default {
     const pushResponse = await handlePushApi(request, env);
     if (pushResponse) return pushResponse;
 
+    const askResponse = await handleAskApi(request, env);
+    if (askResponse) return askResponse;
+
     if (request.method !== "GET") {
       return new Response("Method Not Allowed", {
         status: 405,
@@ -391,6 +395,7 @@ export default {
     await createDailyBrief(env);
     await createEdition(env);
     await createWeeklyMagazine(env);
+    try { await cleanupAskRateLimits(env); } catch (error) { console.error("Optional Ask quota cleanup failed", error); }
     try {
       await deliverPublishedNotifications(env);
     } catch (error) {
