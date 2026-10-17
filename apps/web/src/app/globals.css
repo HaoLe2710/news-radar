@@ -358,3 +358,5 @@ button:disabled { cursor: wait; opacity: .7; }
 .nr-notifications-home strong{font:700 18px Georgia,serif}
 .nr-notifications-home a{font:700 12px Arial,sans-serif;color:#31543d;text-decoration:underline}
 @media(max-width:620px){.nr-notifications-shell{padding:12px 11px 50px}.nr-notifications-topics{grid-template-columns:repeat(2,minmax(0,1fr));margin-left:0}.nr-notifications-card{padding:20px 17px}.nr-notifications-home{flex-direction:column;align-items:flex-start}}
+
+.nr-ask-entry{background:#ebe3d5;border-color:#a98a71;margin-top:-14px}.nr-ask-entry strong{color:#663f2c}.nr-ask-entry .edition-entry-actions a:first-child{background:#7e3e2c}.nr-ask-entry .edition-entry-actions a:first-child:hover{background:#332e27}
