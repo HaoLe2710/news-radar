@@ -38,14 +38,17 @@ export function snapshotSources(daily:SnapshotRow[],weekly:SnapshotRow[]):Omit<A
   return [...all.values()];
 }
 export function retrieveSources(rows:Omit<AskSource,"id">[],question:string,filters:AskFilters,now=new Date(),limit=6):AskSource[]{
-  const {from,to}=periodRange(filters,question,now),q=terms(question);
-  const category=filters.category==="all"?(Object.entries(SYN).find(([,words])=>words.some(w=>ascii(question).includes(w)))?.[0]??"all"):filters.category;
-  if(!q.length&&category==="all")return [];
+  const {from,to}=periodRange(filters,question,now);
+  const plain=ascii(question);
+  const broad=/(?:tom tat|diem tin|tong quan|co gi|noi bat)/.test(plain);
+  const q=terms(question).filter(word=>!broad||!["tom","tat","diem","tong","quan","noi","bat"].includes(word));
+  const category=filters.category==="all"?(Object.entries(SYN).find(([,words])=>words.some(w=>plain.includes(w)))?.[0]??"all"):filters.category;
+  if(!q.length&&category==="all"&&!broad)return [];
   const rated=rows.flatMap(article=>{
     if(from&&article.date<from||to&&article.date>to||category!=="all"&&article.category!==category)return [];
     const title=new Set(terms(article.title)),body=new Set(terms(article.summary));let score=0,hits=0;
     for(const term of q){if(title.has(term)){score+=6;hits++;}else if(body.has(term)){score+=2;hits++;}}
-    if(!hits&&q.length)return [];if(!hits)score=1;
+    if(!hits&&q.length&&!broad)return [];if(!hits)score=1;
     return [{article,score,date:article.date}];
   }).sort((a,b)=>b.score-a.score||b.date.localeCompare(a.date));
   const selected:AskSource[]=[],sources=new Map<string,number>();
