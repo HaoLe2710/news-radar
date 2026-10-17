@@ -1,5 +1,5 @@
 import { ASK_CATEGORIES, evidencePayload, isDate, retrieveSources, snapshotSources,
-  type AskFilters, type AskSource, type SnapshotRow, validateAnswer } from "./ask-retrieval";
+  type AskFilters, type AskSource, type SnapshotRow, validateAnswer } from "./ask-retrieval.ts";
 const MODEL="@cf/meta/llama-3.1-8b-instruct-fp8";
 const ORIGINS=new Set(["https://news-radar-9px.pages.dev","http://localhost:3000","http://127.0.0.1:3000"]);
 const LIMIT_PER_HOUR=12;
@@ -97,4 +97,9 @@ export async function handleAskApi(request:Request,env:AskEnv):Promise<Response|
   }
   return reply({data:{answer,citations:sources.filter(s=>ids.includes(s.id)),followUps,mode,
     scope:"45 báo ngày và 10 tạp chí gần nhất",limitations:"Chỉ dựa trên tiêu đề và mô tả RSS đã lưu; không thay thế bài báo gốc."}},200,origin);
+}
+
+export async function cleanupAskRateLimits(env:AskEnv,now=new Date()):Promise<void>{
+  const cutoff=new Date(now.getTime()-3*86400000).toISOString().slice(0,13);
+  await env.DB.prepare("DELETE FROM ask_rate_limits WHERE bucket < ?").bind(cutoff).run();
 }
