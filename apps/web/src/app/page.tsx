@@ -287,25 +287,6 @@ export default function Home() {
 
   return (
     <div className="site-shell">
-      <div className="utility-bar">
-        <span>THE DAILY SIGNAL · PERSONAL NEWS DESK</span>
-        <span>Đọc nhanh những gì đáng chú ý</span>
-      </div>
-
-      <header className="masthead">
-        <div className="masthead-title-row">
-          <div className="brand-mark" aria-hidden="true">NR.</div>
-          <div>
-            <p className="eyebrow">Your world, in focus.</p>
-            <h1>NEWS RADAR</h1>
-            <p className="masthead-subtitle">Một góc nhìn tổng hợp về Việt Nam &amp; thế giới.</p>
-          </div>
-        </div>
-        <button className="refresh-button" onClick={refresh} disabled={loading} type="button">
-          <span aria-hidden="true">↻</span> {loading ? "Đang tải..." : "Tải lại tin"}
-        </button>
-      </header>
-
       <nav className="site-nav" aria-label="Khu vực tin tức">
         <div className="region-tabs">
           {([ ["all", "Tất cả"], ["vn", "Việt Nam"], ["world", "Thế giới"] ] as const).map(([value, label]) => (
@@ -314,56 +295,22 @@ export default function Home() {
             </button>
           ))}
         </div>
-        <div className="nav-count">{total} bài trong kho tin</div>
+        <div className="nr-live-meta">
+          <span className="nav-count">{total} bài trong kho tin</span>
+          <button type="button" className="refresh-button" disabled={loading} onClick={refresh}>↻ {loading ? "Đang tải..." : "Cập nhật"}</button>
+        </div>
       </nav>
 
       <main>
         <section className="intro-strip" aria-label="Giới thiệu">
           <div>
             <p className="section-kicker">TODAY'S EDITION</p>
-            <h2>Những câu chuyện đáng chú ý</h2>
+            <h1>Những câu chuyện đáng chú ý</h1>
             <p>Chọn khu vực, lĩnh vực hoặc tìm kiếm để khám phá tin mới từ nhiều nguồn.</p>
           </div>
           <div className="edition-stamp">
             <span>BẢN TIN</span>
             <strong>{new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "long", year: "numeric" }).format(new Date())}</strong>
-          </div>
-        </section>
-
-        <section className="nr-notifications-home" aria-label="Thông báo News Radar">
-          <strong>Nhận thông báo khi có số báo hoặc tạp chí mới</strong>
-          <a href="/notifications/">Cài đặt thông báo →</a>
-        </section>
-
-        <section className="nr-pocket-home" aria-label="Thư viện báo offline">
-          <span>NEWS RADAR POCKET</span>
-          <strong>Đọc báo ngay cả khi mất mạng</strong>
-          <p>Lưu ấn bản và ghi nhớ trang đang đọc trên thiết bị của bạn.</p>
-          <a href="/library/">Mở tủ báo cá nhân →</a>
-        </section>
-        <section className="edition-entry" aria-label="Số báo giấy hằng ngày">
-          <div><strong>NEWS RADAR — ẤN BẢN BÁO GIẤY</strong><p>Chọn lọc tin tức thành một số báo cố định mỗi ngày, trình bày theo phong cách báo in.</p></div>
-          <div className="edition-entry-actions"><a href="/edition/">Mở số báo hôm nay ↗</a><a href="/edition/archive/">Thư viện số báo</a></div>
-        </section>
-
-        <section className="edition-entry weekly-entry" aria-label="Tạp chí tổng kết tuần">
-          <div>
-            <strong>NEWS RADAR WEEKLY — TẠP CHÍ CUỐI TUẦN</strong>
-            <p>Những diễn biến của tuần được tuyển chọn, biên tập và dàn trang thành một tập riêng. Tập tuần mới phát hành vào thứ Hai.</p>
-          </div>
-          <div className="edition-entry-actions">
-            <a href="/magazine/">Đọc tập mới nhất ↗</a>
-            <a href="/magazine/archive/">Thư viện tạp chí</a>
-          </div>
-        </section>
-
-        <section className="edition-entry nr-ask-entry" aria-label="Trợ lý hỏi đáp tin tức">
-          <div><strong>✦ ASK NEWS RADAR — HỎI TỜ BÁO BẰNG AI</strong>
-            <p>Hỏi đáp về tin tức đã xuất bản, tìm kiếm theo ngày và chuyên mục; mọi kết quả đều dẫn về nguồn bài báo gốc.</p>
-          </div>
-          <div className="edition-entry-actions">
-            <a href="/ask/">Đặt câu hỏi cho AI ↗</a>
-            <a href="/edition/archive/">Tra cứu số báo</a>
           </div>
         </section>
 
