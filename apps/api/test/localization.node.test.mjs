@@ -62,6 +62,6 @@ test("cannot hallucinate a description if original RSS summary was empty",()=>{
   assert.equal(parsed.get(3)?.summaryVi,undefined);
 });
 test("missing Workers AI never mutates the database or blocks scheduled news ingestion",async()=>{
-  const result=await localizePendingArticles({DB:{} as never,AI:undefined});
+  const result=await localizePendingArticles({DB:{},AI:undefined});
   assert.deepEqual(result,{attempted:0,translated:0});
 });
