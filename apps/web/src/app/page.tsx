@@ -1,3 +1,4 @@
+import { newsTitle, newsSummary, isTranslated } from "../lib/localized-news";
 "use client";
 
 import { useEffect, useState } from "react";
@@ -6,6 +7,8 @@ import { DEFAULT_RADAR_PREFERENCES, RADAR_STORAGE_KEY, RADAR_TOPICS, getRadarQue
 type Article = {
   id: number;
   title: string;
+  titleVi?: string | null;
+  summaryVi?: string | null;
   url: string;
   summary: string | null;
   image_url: string | null;
@@ -24,7 +27,7 @@ type DailyBrief = {
   mode: "ai" | "headlines";
   createdAt: string;
   articles: {
-    id: number; title: string; url: string; source: string;
+    id: number; title: string; titleVi?: string; url: string; source: string;
     category: string; published_at: string | null;
   }[];
 };
@@ -335,7 +338,7 @@ export default function Home() {
                 {dailyBrief.articles.map((a, index) => (
                   <a key={a.id} href={a.url} target="_blank" rel="noopener noreferrer">
                     <span>{String(index + 1).padStart(2, "0")}</span>
-                    <span><strong>{a.title}</strong><small>{a.source}</small></span>
+                    <span><strong>{newsTitle(a)}</strong><small>{a.source}</small></span>
                     <span aria-hidden="true">↗</span>
                   </a>
                 ))}
@@ -397,8 +400,8 @@ export default function Home() {
                   {radarStories.map(({ article, topic }) => (
                     <article className="radar-card" key={article.id}>
                       <div className="radar-card-meta"><span>{RADAR_TOPICS.find((item) => item.id === topic)?.label}</span><span>{article.region === "vn" ? "Việt Nam" : "Thế giới"}</span></div>
-                      <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
-                      <p>{article.summary || "Mở bài gốc để đọc thêm."}</p>
+                      <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{newsTitle(article)}</a></h3>
+                      <p>{newsSummary(article) || "Mở bài gốc để đọc thêm."}</p>
                       <div className="radar-card-footer"><span>{article.source}</span><time dateTime={article.published_at ?? undefined}>{formatDate(article.published_at)}</time></div>
                     </article>
                   ))}
@@ -468,7 +471,7 @@ export default function Home() {
                   <div className="related-links">
                     {story.articles.map((article) => (
                       <a key={article.id} href={article.url} target="_blank" rel="noopener noreferrer">
-                        <strong>{article.source}</strong> · {article.title} ↗
+                        <strong>{article.source}</strong> · {newsTitle(article)} ↗
                       </a>
                     ))}
                   </div>
@@ -526,8 +529,8 @@ export default function Home() {
                 <div className="lead-decor" aria-hidden="true"><span>RADAR</span><span>●</span></div>
                 <div className="lead-content">
                   <div className="meta-row"><RegionLabel region={featured.region} /><span>{categoryName(featured.category)}</span></div>
-                  <h3><a href={featured.url} target="_blank" rel="noopener noreferrer">{featured.title}</a></h3>
-                  <p className="lead-summary">{featured.summary || "Mở bài viết gốc để đọc nội dung đầy đủ."}</p>
+                  <h3><a href={featured.url} target="_blank" rel="noopener noreferrer">{newsTitle(featured)}</a></h3>
+                  <p className="lead-summary">{newsSummary(featured) || "Mở bài viết gốc để đọc nội dung đầy đủ."}</p>
                   <div className="lead-footer"><span>{featured.source} · {formatDate(featured.published_at)}</span><a href={featured.url} target="_blank" rel="noopener noreferrer">Đọc bài gốc ↗</a></div>
                 </div>
               </article>
@@ -536,8 +539,8 @@ export default function Home() {
                   <article className="side-story" key={article.id}>
                     <span className="story-index">0{index + 2}</span>
                     <div className="meta-row"><RegionLabel region={article.region} /><span>{categoryName(article.category)}</span></div>
-                    <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
-                    <p>{article.summary || "Mở bài viết gốc để đọc thêm."}</p>
+                    <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{newsTitle(article)}</a></h3>
+                    <p>{newsSummary(article) || "Mở bài viết gốc để đọc thêm."}</p>
                     <div className="source-line">{article.source} · {formatDate(article.published_at)}</div>
                   </article>
                 ))}
@@ -557,9 +560,9 @@ export default function Home() {
                       onError={(event) => { event.currentTarget.style.display = "none"; }} />
                   ) : null}
                   <div className="card-topline"><span>{String((page - 1) * PAGE_SIZE + index + (page === 1 ? 4 : 1)).padStart(2, "0")}</span><RegionLabel region={article.region} /></div>
-                  <p className="card-category">{categoryName(article.category)}</p>
-                  <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
-                  <p className="card-summary">{article.summary || "Xem chi tiết tại nguồn tin gốc."}</p>
+                  <p className="card-category">{categoryName(article.category)} {isTranslated(article) ? <span className="nr-localized-label">VI · AI dịch từ RSS</span> : null}</p>
+                  <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{newsTitle(article)}</a></h3>
+                  <p className="card-summary">{newsSummary(article) || "Xem chi tiết tại nguồn tin gốc."}</p>
                   <div className="card-footer"><span>{article.source}</span><time dateTime={article.published_at ?? undefined}>{formatDate(article.published_at)}</time></div>
                 </article>
               ))}
