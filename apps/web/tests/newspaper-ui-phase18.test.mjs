@@ -39,7 +39,7 @@ test("daily and weekly show real excerpt data, publisher credits, images and ori
   const weekly=read("app/magazine/magazine-content.tsx");
   const print=read("app/edition/print/page.tsx");
   for(const source of [daily,weekly]){
-    assert.match(source,/article\.editorialSummary \|\| article\.summary/);
+    assert.match(source,/newsSummary\(article\)/);
     assert.match(source,/article\.image_url/);
     assert.match(source,/article\.source/);
     assert.match(source,/rel="noopener noreferrer"/);
