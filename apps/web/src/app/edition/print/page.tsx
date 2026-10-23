@@ -1,5 +1,6 @@
-import { newsTitle, newsSummary, isTranslated } from "../../lib/localized-news";
 "use client";
+
+import { newsTitle, newsSummary, isTranslated } from "../../../lib/localized-news";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
