@@ -1,5 +1,6 @@
-import { newsTitle, newsSummary, isTranslated } from "../lib/localized-news";
 "use client";
+
+import { newsTitle, newsSummary, isTranslated } from "../lib/localized-news";
 
 import { useEffect, useState } from "react";
 import { DEFAULT_RADAR_PREFERENCES, RADAR_STORAGE_KEY, RADAR_TOPICS, getRadarQueries, parseRadarPreferences, selectRadarStories, type RadarPreferences, type RadarStory } from "../lib/my-radar";
