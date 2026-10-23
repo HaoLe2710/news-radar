@@ -305,7 +305,7 @@ export default function Home() {
         <section className="intro-strip" aria-label="Giới thiệu">
           <div>
             <p className="section-kicker">TODAY'S EDITION</p>
-            <h2>Những câu chuyện đáng chú ý</h2>
+            <h1>Những câu chuyện đáng chú ý</h1>
             <p>Chọn khu vực, lĩnh vực hoặc tìm kiếm để khám phá tin mới từ nhiều nguồn.</p>
           </div>
           <div className="edition-stamp">
