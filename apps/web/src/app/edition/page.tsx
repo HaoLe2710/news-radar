@@ -29,14 +29,24 @@ function OriginalSource({ article }: { article: EditionArticle }) {
   </a>;
 }
 function NewspaperStory({ article, number }: { article: EditionArticle; number: number }) {
-  return <div className="nr-report">
+  const excerpt = article.editorialSummary || article.summary;
+  return <article className="nr-report">
     <span className="nr-category">{String(number).padStart(2, "0")} / {CATEGORIES[article.category] ?? "Tin tức"}</span>
     <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
-    <p>{article.editorialSummary || article.summary || "Thông tin chi tiết có tại nguồn báo gốc."}</p>
-  {article.editorialSummary ? <small className="nr-ai-note">Tóm lược bởi AI từ dữ liệu RSS · cần đối chiếu bài gốc</small> : null}
-  {article.relatedSources?.length ? <div className="nr-related-sources"><strong>Cùng sự kiện:</strong> {article.relatedSources.map((source) => <a key={source.url} href={source.url} target="_blank" rel="noopener noreferrer">{source.source} ↗</a>)}</div> : null}
+    <div className="nr-news-byline">{article.source} · {article.published_at ?
+      new Intl.DateTimeFormat("vi-VN", {day:"2-digit",month:"2-digit",year:"numeric",timeZone:"Asia/Ho_Chi_Minh"}).format(new Date(article.published_at)) : "Bản tin RSS"}</div>
+    {article.image_url ? <figure className="nr-report-picture">
+      <img src={article.image_url} alt={"Hình minh họa từ " + article.source} loading="lazy"
+        onError={e=>{e.currentTarget.style.display="none";}}/>
+      <figcaption className="nr-news-caption">Ảnh được cung cấp bởi nguồn RSS · {article.source}</figcaption>
+    </figure> : null}
+    <div className="nr-article-body"><p>{excerpt || "Bản lưu chưa có phần mô tả. Đọc thêm ở nguồn tin gốc."}</p></div>
+    <div className="nr-article-note">{article.editorialSummary ?
+      "AI tóm lược từ mô tả RSS; không phải toàn văn bài báo." : "Trích nội dung mô tả RSS; không phải toàn văn bài báo."}</div>
+    {article.relatedSources?.length ? <div className="nr-related-sources"><strong>Cùng sự kiện:</strong> {article.relatedSources.map(source=>
+      <a key={source.url} href={source.url} target="_blank" rel="noopener noreferrer">{source.source} ↗</a>)}</div> : null}
     <OriginalSource article={article}/>
-  </div>;
+  </article>;
 }
 function PageContents({ page, edition }: { page: EditionPage; edition: NewspaperEdition }) {
   if (page.kind === "cover") return <>
@@ -50,6 +60,7 @@ function PageContents({ page, edition }: { page: EditionPage; edition: Newspaper
         {edition.lead.image_url ? <img className="nr-cover-image" src={edition.lead.image_url} alt="" loading="eager"
           onError={(e) => { e.currentTarget.style.display = "none"; }}/> : null}
         <p>{edition.lead.editorialSummary || edition.lead.summary || "Chi tiết có tại nguồn báo gốc."}</p>
+        <div className="nr-news-byline">{edition.lead.source} · Bản tin theo mô tả RSS</div>
         {edition.lead.editorialSummary ? <small className="nr-ai-note">Tóm lược bởi AI từ RSS · kiểm chứng tại nguồn gốc</small> : null}
         {edition.lead.relatedSources?.length ? <div className="nr-related-sources"><strong>Cùng sự kiện:</strong> {edition.lead.relatedSources.map((source) => <a key={source.url} href={source.url} target="_blank" rel="noopener noreferrer">{source.source} ↗</a>)}</div> : null}
         <OriginalSource article={edition.lead}/>
@@ -63,6 +74,14 @@ function PageContents({ page, edition }: { page: EditionPage; edition: Newspaper
         <div className="nr-cover-folio">BẢN TIN HẰNG NGÀY · {dateLabel(edition.issueDate)}</div>
       </aside>
     </div>
+    {edition.secondary?.length ? <div className="nr-cover-teasers" aria-label="Tin khác trên trang nhất">
+      {edition.secondary.slice(0,3).map(article=><article key={article.id}>
+        <span className="nr-category">{CATEGORIES[article.category] ?? "Tin tức"}</span>
+        <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
+        {article.summary ? <p>{article.summary}</p> : null}
+        <small>{article.source}</small>
+      </article>)}
+    </div> : null}
   </>;
   if (page.kind === "stories") return <>
     <div className="nr-inside-header"><span>NEWS RADAR / {edition.issueDate}</span><span>{page.subtitle}</span></div>
@@ -79,7 +98,7 @@ function PageContents({ page, edition }: { page: EditionPage; edition: Newspaper
     <div className="nr-brief-list">{page.articles.map((article, index) => <div key={article.id} className="nr-brief-item">
       <span className="nr-brief-index">{String(index + 1).padStart(2, "0")}</span>
       <div><h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
-        <p>{article.summary || "Xem bài viết gốc để biết thêm chi tiết."}</p><OriginalSource article={article}/></div>
+        <p>{article.editorialSummary || article.summary || "Bản lưu chưa có phần mô tả."}</p><div className="nr-news-byline">{article.source} · Trích nội dung RSS</div><OriginalSource article={article}/></div>
     </div>)}</div>
   </>;
   return <>
@@ -92,7 +111,7 @@ function PageContents({ page, edition }: { page: EditionPage; edition: Newspaper
       : <div className="nr-radar-list">{page.articles.map(({ article, topic }) => <section key={article.id}>
           <span className="nr-category">{RADAR_TOPICS.find((t) => t.id === topic)?.label ?? topic} · {article.source}</span>
           <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
-          <p>{article.editorialSummary || article.summary || "Đọc thêm ở nguồn gốc."}</p>
+          <p>{article.editorialSummary || article.summary || "Bản lưu chưa có phần mô tả."}</p><OriginalSource article={article}/>
         </section>)}</div>}
     <p className="nr-disclaimer">Nội dung của bản tin được tổng hợp từ tiêu đề và mô tả RSS; liên kết dẫn về trang báo xuất bản gốc.</p>
   </>;
@@ -197,7 +216,7 @@ export default function EditionPage() {
       {fromOffline ? <p className="nr-offline-banner" role="status">Đang đọc bản đã lưu trên thiết bị · Tin gốc và ảnh có thể cần Internet.</p> : null}
       <div className="nr-reader-intro">
         <div><span className="nr-reader-eyebrow">ẤN BẢN SỐ · {edition.issueDate}</span>
-          <h1>Báo giấy của hôm nay</h1>
+          <h1>Ấn bản báo ngày</h1>
           <p>{dateLabel(edition.issueDate)} · Tin tức ngày {edition.coverageDate} · {edition.sourceCount} nguồn</p>
         </div>
         <div className="nr-reader-print-actions"><OfflineIssueButton kind="daily" issue={edition}/><Link href="/library/">Tủ báo của tôi ↗</Link><span>← → để chuyển trang · Vuốt ngang trên điện thoại</span><Link href={printEditionHref(edition.issueDate)}>In / Lưu PDF ↗</Link></div>
