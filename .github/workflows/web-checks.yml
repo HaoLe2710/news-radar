@@ -33,6 +33,16 @@ jobs:
         run: node --experimental-strip-types --test tests/*.test.mjs
       - name: Build static site
         run: npm run build
+      - name: Verify Vietnamese fonts are self-hosted
+        run: |
+          set -euo pipefail
+          fonts=$(find out/_next/static/media -type f -name '*.woff2' | wc -l)
+          test "$fonts" -ge 2
+          if grep -q 'fonts.googleapis.com' out/index.html; then
+            echo "::error::Runtime Google Fonts dependency remains in exported HTML"
+            exit 1
+          fi
+          echo "Verified $fonts bundled font files; no external Google Fonts stylesheet."
 
   api:
     runs-on: ubuntu-latest
