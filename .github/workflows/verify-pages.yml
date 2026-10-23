@@ -44,3 +44,27 @@ jobs:
           done
           echo "::error::Production is not serving activated Phase 16 Web Push with VAPID keys."
           exit 1
+
+      - name: Verify Phase 18 newspaper navigation and reader routes
+        if: github.event_name == 'push'
+        env:
+          SITE: https://news-radar-9px.pages.dev
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 25); do
+            echo "Checking Phase 18 production UI, attempt $i..."
+            if curl -fLsS --max-time 12 -H 'Cache-Control: no-cache' "$SITE/" -o /tmp/nr-home-18.html \
+              && grep -q 'nr-global-header' /tmp/nr-home-18.html \
+              && grep -q 'nr-global-navigation' /tmp/nr-home-18.html \
+              && grep -q 'Những câu chuyện đáng chú ý' /tmp/nr-home-18.html \
+              && curl -fLsS --max-time 12 "$SITE/edition/" -o /tmp/nr-daily-18.html \
+              && grep -q 'nr-reader-shell' /tmp/nr-daily-18.html \
+              && curl -fLsS --max-time 12 "$SITE/magazine/" -o /tmp/nr-weekly-18.html \
+              && grep -q 'wm-app' /tmp/nr-weekly-18.html; then
+              echo "Phase 18 global navigation and newspaper reader pages are served in Production."
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "::error::Phase 18 UI is not deployed on Cloudflare Pages."
+          exit 1
