@@ -27,7 +27,7 @@ export default function SiteNavbar() {
   return <header className="nr-global-header">
     <div className="nr-global-top">
       <Link href="/" className="nr-global-brand" aria-label="News Radar - Trang nhất">
-        <span className="nr-global-brand-mark">NR<span className="nr-global-brand-dot">.</span></span>
+        <img className="nr-global-brand-logo" src="/icon.svg" alt="" width={46} height={46} decoding="async"/>
         <span className="nr-global-brand-wordmark">NEWS RADAR<small>THE DAILY EDITION</small></span>
       </Link>
       <span className="nr-global-tagline">TIN TỨC ĐƯỢC CHỌN LỌC · ĐỌC THEO CÁCH CỦA BẠN</span>
