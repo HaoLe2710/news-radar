@@ -208,3 +208,31 @@ a,button { -webkit-tap-highlight-color: transparent; }
   .pe-news-article,.wm-article {break-inside:avoid;page-break-inside:avoid}
   a[href]{text-decoration-thickness:1px}
 }
+
+
+/* Weekly review is set like short newspaper columns rather than a title/link index. */
+.wm-week-review-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px 20px;border-top:4px double #534b3e;padding-top:16px;margin:23px 0}
+.wm-week-review-grid article {border-bottom:1px solid var(--nr-line);padding-bottom:12px;min-width:0}
+.wm-week-review-grid h3 {font:800 15px/1.5 var(--nr-serif);margin:6px 0}
+.wm-week-review-grid p {font:12px/1.85 var(--nr-serif);text-align:justify;margin:7px 0}
+.wm-week-review-grid .wm-source {font-size:9px}
+/* Keep active news filters functional without recreating the promo banner stack. */
+.nr-live-meta {display:flex;justify-content:flex-end;align-items:center;gap:12px}
+.nr-live-meta .refresh-button {padding:7px 11px;border:1px solid #b5a99a;background:transparent;font:700 11px var(--nr-sans)}
+.nr-live-meta .refresh-button:disabled {opacity:.55;cursor:not-allowed}
+.site-shell .intro-strip h1 {font:800 clamp(28px,3.2vw,42px)/1.33 var(--nr-serif);letter-spacing:0;margin:0}
+@media (max-width:720px) {
+ .site-nav {flex-wrap:wrap;gap:6px}
+ .site-nav .region-tabs {gap:17px}
+ .site-nav .nav-tab {font:700 10px var(--nr-sans);padding:12px 0}
+ .site-nav .nr-live-meta {gap:8px;padding-bottom:8px;margin-left:auto}
+ .site-nav .nav-count {font:10px var(--nr-sans)}
+ .wm-week-review-grid {grid-template-columns:1fr;gap:13px}
+ .wm-week-review-grid h3 {font-size:16px}
+ .wm-week-review-grid p {font-size:14px;text-align:left}
+}
+@media print {
+ .wm-week-review-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
+ .wm-week-review-grid h3 {font-size:12px}
+ .wm-week-review-grid p {font-size:10px}
+}
