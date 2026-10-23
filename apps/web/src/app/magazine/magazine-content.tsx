@@ -1,3 +1,4 @@
+import { newsTitle, newsSummary, isTranslated } from "../../lib/localized-news";
 import type { WeeklyArticle, WeeklyMagazine, WeeklyPage } from "../../lib/weekly-magazine";
 
 const SECTIONS: Record<string,string> = {
@@ -11,10 +12,10 @@ function SourceLink({article}:{article:{url:string;source:string}}) {
   return <a className="wm-source" target="_blank" rel="noopener noreferrer" href={article.url}>{article.source} · Xem tin gốc ↗</a>;
 }
 function MagazineArticle({article, index}:{article:WeeklyArticle;index:number}) {
-  const excerpt=article.editorialSummary || article.summary;
+  const excerpt=newsSummary(article);
   return <article className="wm-article">
     <span className="wm-eyebrow">{String(index+1).padStart(2,"0")} / {SECTIONS[article.category] ?? "Tin tức"} / {article.coverageDate}</span>
-    <h3><a target="_blank" rel="noopener noreferrer" href={article.url}>{article.title}</a></h3>
+    <h3><a target="_blank" rel="noopener noreferrer" href={article.url}>{newsTitle(article)}</a></h3>
     <div className="wm-news-byline">{article.source} · Tin từ ngày {article.coverageDate}</div>
     {article.image_url ? <figure className="wm-article-figure">
       <img src={article.image_url} alt={"Ảnh RSS từ " + article.source}
@@ -22,7 +23,7 @@ function MagazineArticle({article, index}:{article:WeeklyArticle;index:number}) 
       <figcaption className="wm-news-caption">Ảnh từ RSS · {article.source}</figcaption>
     </figure> : null}
     <div className="wm-article-body"><p>{excerpt || "Chưa có đoạn mô tả RSS được lưu. Xem bài tại nguồn xuất bản."}</p></div>
-    <small className="wm-article-note">{article.editorialSummary ?
+    <small className="wm-article-note">{isTranslated(article) ? "AI dịch tiếng Việt từ RSS · kiểm chứng nguồn" : article.editorialSummary ?
       "AI tóm lược từ RSS · kiểm chứng ở nguồn gốc" : "Mô tả RSS · không phải toàn văn"}</small>
     <SourceLink article={article}/>
   </article>;
@@ -39,7 +40,7 @@ export function MagazinePageContent({page, magazine}:{page:WeeklyPage;magazine:W
           <span className="wm-eyebrow">CÂU CHUYỆN TUẦN NÀY</span>
           <h2 className="wm-cover-headline">{magazine.title}</h2>
           {lead?.image_url ? <img className="wm-cover-photo" src={lead.image_url} alt="" onError={e=>{e.currentTarget.style.display="none"}}/>:null}
-          {lead ? <><div className="wm-news-byline">Tin chính · {lead.source} · {lead.coverageDate}</div><h3 className="wm-cover-lead"><a href={lead.url} target="_blank" rel="noopener noreferrer">{lead.title}</a></h3><SourceLink article={lead}/></>:null}
+          {lead ? <><div className="wm-news-byline">Tin chính · {lead.source} · {lead.coverageDate}</div><h3 className="wm-cover-lead"><a href={lead.url} target="_blank" rel="noopener noreferrer">{newsTitle(lead)}</a></h3><SourceLink article={lead}/></>:null}
         </section>
         <aside className="wm-cover-aside">
           <span className="wm-eyebrow">LỜI GIỚI THIỆU</span>
@@ -51,8 +52,8 @@ export function MagazinePageContent({page, magazine}:{page:WeeklyPage;magazine:W
       {magazine.stories.length>1 ? <div className="wm-cover-briefs" aria-label="Các bài khác trong tuần">
         {magazine.stories.slice(1,3).map(article=><article key={article.url}>
           <span className="wm-eyebrow">{SECTIONS[article.category] ?? "Tin tức"}</span>
-          <h3><a target="_blank" rel="noopener noreferrer" href={article.url}>{article.title}</a></h3>
-          {article.summary ? <p>{article.summary}</p> : null}
+          <h3><a target="_blank" rel="noopener noreferrer" href={article.url}>{newsTitle(article)}</a></h3>
+          {newsSummary(article) ? <p>{newsSummary(article)}</p> : null}
           <SourceLink article={article}/>
         </article>)}
       </div> : null}
@@ -66,8 +67,8 @@ export function MagazinePageContent({page, magazine}:{page:WeeklyPage;magazine:W
     <div className="wm-week-review-grid">
       {magazine.stories.slice(0,4).map(article=><article key={article.url}>
         <span className="wm-eyebrow">{SECTIONS[article.category] ?? "Tin tức"}</span>
-        <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
-        <p>{article.editorialSummary || article.summary || "Xem nội dung gốc để biết thêm."}</p>
+        <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{newsTitle(article)}</a></h3>
+        <p>{newsSummary(article) || "Xem nội dung gốc để biết thêm."}</p>
         <SourceLink article={article}/>
       </article>)}
     </div>
@@ -92,7 +93,7 @@ export function MagazinePageContent({page, magazine}:{page:WeeklyPage;magazine:W
     <h2 className="wm-section-title">Tuần diễn ra như thế nào?</h2>
     {page.days.length ? <div className="wm-timeline">{page.days.map(day=><section key={day.date}>
       <div className="wm-timeline-date"><WeekDate date={day.date}/></div>
-      <div>{day.stories.map(article=><p key={article.url}><a target="_blank" rel="noopener noreferrer" href={article.url}>{article.title}</a><small>{article.source}</small></p>)}</div>
+      <div>{day.stories.map(article=><p key={article.url}><a target="_blank" rel="noopener noreferrer" href={article.url}>{newsTitle(article)}</a><small>{article.source}</small></p>)}</div>
     </section>)}</div>:<p>Chưa có sự kiện được ghi nhận từ các số báo đã lưu.</p>}
     {magazine.missingDates.length>0?<p className="wm-small-note">Ngày chưa có số báo: {magazine.missingDates.join(", ")}.</p>:null}
   </>;
@@ -104,8 +105,8 @@ export function MagazinePageContent({page, magazine}:{page:WeeklyPage;magazine:W
     {!page.enabled?<p>My Radar đang tắt. Bật lại trên trang chủ để có bản tin riêng.</p>:
       page.articles.length ? <div className="wm-articles">{page.articles.map(({article,topic},i)=><article key={article.url} className="wm-article">
         <span className="wm-eyebrow">{String(i+1).padStart(2,"0")} / {topic.toUpperCase()}</span>
-        <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
-        <div className="wm-article-body"><p>{article.editorialSummary || article.summary || "Đọc thêm tại nguồn tin gốc."}</p></div><SourceLink article={article}/>
+        <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{newsTitle(article)}</a></h3>
+        <div className="wm-article-body"><p>{newsSummary(article) || "Đọc thêm tại nguồn tin gốc."}</p></div><SourceLink article={article}/>
       </article>)}</div> : <p>Chưa có thêm bài phù hợp trong tuần này.</p>}
   </>;
 }
