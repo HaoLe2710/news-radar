@@ -29,7 +29,10 @@ function PrintArticle({ article, order }: { article: EditionArticle; order: numb
   return <article className="pe-news-article">
     <span className="pe-kicker">{String(order).padStart(2, "0")} / {CATEGORIES[article.category] ?? "Tin tức"}</span>
     <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
-    <p>{article.editorialSummary || article.summary || "Thông tin chi tiết có tại nguồn xuất bản."}</p>
+    <div className="pe-kicker">{article.source} · Nguồn RSS</div>
+    {article.image_url ? <img className="pe-print-image" src={article.image_url} alt={"Hình minh họa từ " + article.source} loading="lazy" onError={e=>{e.currentTarget.style.display="none";}}/> : null}
+    <p>{article.editorialSummary || article.summary || "Bản lưu chưa có đoạn mô tả RSS."}</p>
+    <small className="pe-ai-note">{article.editorialSummary ? "AI tóm lược từ RSS" : "Đoạn trích mô tả RSS"} · không phải toàn văn bài báo</small>
     {article.editorialSummary ? <small className="pe-ai-note">AI tóm lược từ RSS; vui lòng kiểm tra nguồn gốc.</small> : null}
     {article.relatedSources?.length ? <div className="pe-related"><strong>Nguồn liên quan:</strong> {article.relatedSources.map((s) => <a key={s.url} href={s.url} target="_blank" rel="noopener noreferrer">{s.source} ↗</a>)}</div> : null}
     <Source article={article}/>
@@ -65,6 +68,14 @@ function PrintPage({ page, edition }: { page: EditionPage; edition: NewspaperEdi
         <div className="pe-cover-date">{issueDateLabel(edition.issueDate)}</div>
       </aside>
     </div>
+    {edition.secondary?.length ? <div className="pe-cover-teasers">
+      {edition.secondary.slice(0,2).map(article=><article key={article.id}>
+        <span className="pe-kicker">{CATEGORIES[article.category] ?? "Tin tức"}</span>
+        <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
+        {article.summary ? <p>{article.summary}</p> : null}
+        <Source article={article}/>
+      </article>)}
+    </div> : null}
   </>;
 
   if (page.kind === "stories") return <>
@@ -83,7 +94,7 @@ function PrintPage({ page, edition }: { page: EditionPage; edition: NewspaperEdi
       {page.articles.map((article, index) => <div className="pe-brief" key={article.id}>
         <span className="pe-brief-number">{String(index + 1).padStart(2, "0")}</span>
         <div><h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
-          <p>{article.summary || "Xem bài báo gốc để biết thêm chi tiết."}</p><Source article={article}/></div>
+          <p>{article.editorialSummary || article.summary || "Bản lưu chưa có mô tả RSS."}</p><Source article={article}/></div>
       </div>)}
     </div>
   </>;
