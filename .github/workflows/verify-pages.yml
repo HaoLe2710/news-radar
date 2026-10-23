@@ -68,3 +68,25 @@ jobs:
           done
           echo "::error::Phase 18 UI is not deployed on Cloudflare Pages."
           exit 1
+
+      - name: Verify Vietnamese font assets on Cloudflare Pages
+        if: github.event_name == 'push'
+        env:
+          SITE: https://news-radar-9px.pages.dev
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 25); do
+            echo "Checking self-hosted font assets, attempt $i..."
+            if curl -fLsS --max-time 12 -H 'Cache-Control: no-cache' "$SITE/" -o /tmp/nr-font-home.html; then
+              path=$(grep -oE '/_next/static/media/[^"]+\.woff2' /tmp/nr-font-home.html | head -n 1 || true)
+              if [ -n "$path" ] && ! grep -q 'fonts.googleapis.com' /tmp/nr-font-home.html \
+                && curl -fLsS --max-time 12 "$SITE$path" -o /tmp/nr-font-live.woff2 \
+                && [ "$(wc -c </tmp/nr-font-live.woff2)" -gt 1000 ]; then
+                echo "Verified bundled font preloading and live woff2 delivery."
+                exit 0
+              fi
+            fi
+            sleep 15
+          done
+          echo "::error::Vietnamese font bundle is not yet being served in Production."
+          exit 1
