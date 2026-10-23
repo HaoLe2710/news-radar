@@ -1,3 +1,4 @@
+import { localizationMap, applyLocalization } from "./localization";
 import type { NewspaperEdition } from "./edition-builder.ts";
 import { generateEditorial } from "./editorial-engine.ts";
 import {
@@ -8,12 +9,25 @@ import {
 export interface WeeklyEnv { DB: D1Database; AI?: Ai }
 const CREATE_TABLE = "CREATE TABLE IF NOT EXISTS weekly_magazines (week_start TEXT PRIMARY KEY, payload_json TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))";
 
+async function localizedMagazine(env:WeeklyEnv, magazine:WeeklyMagazine):Promise<WeeklyMagazine>{
+  const map=await localizationMap(env.DB,[...magazine.stories,...magazine.radarPool]);
+  if(!map.size)return magazine;
+  return {
+    ...magazine,
+    stories:magazine.stories.map(article=>applyLocalization(article,map)),
+    radarPool:magazine.radarPool.map(article=>applyLocalization(article,map)),
+    timeline:magazine.timeline.map(day=>({
+      ...day,
+      stories:day.stories.map(item=>({...item,...(map.get(item.id)?.titleVi?{titleVi:map.get(item.id)!.titleVi}:{})}))
+    }))
+  };
+}
 export async function readWeeklyMagazine(env: WeeklyEnv, weekStart: string): Promise<WeeklyMagazine | null> {
   if (!isValidWeekStart(weekStart)) return null;
   try {
     const row = await env.DB.prepare("SELECT payload_json FROM weekly_magazines WHERE week_start = ?")
       .bind(weekStart).first<{ payload_json: string }>();
-    return row ? JSON.parse(row.payload_json) as WeeklyMagazine : null;
+    return row ? localizedMagazine(env, JSON.parse(row.payload_json) as WeeklyMagazine) : null;
   } catch (error) {
     if (String(error).includes("no such table: weekly_magazines")) return null;
     throw error;
@@ -24,7 +38,7 @@ export async function latestWeeklyMagazine(env: WeeklyEnv): Promise<WeeklyMagazi
   try {
     const row = await env.DB.prepare("SELECT payload_json FROM weekly_magazines ORDER BY week_start DESC LIMIT 1")
       .first<{ payload_json: string }>();
-    return row ? JSON.parse(row.payload_json) as WeeklyMagazine : null;
+    return row ? localizedMagazine(env, JSON.parse(row.payload_json) as WeeklyMagazine) : null;
   } catch (error) {
     if (String(error).includes("no such table: weekly_magazines")) return null;
     throw error;

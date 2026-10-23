@@ -311,3 +311,13 @@ a,button { -webkit-tap-highlight-color: transparent; }
   .wm-page h1,.wm-page h2,.wm-page h3,
   .pe-sheet h1,.pe-sheet h2,.pe-sheet h3{letter-spacing:0!important}
 }
+
+
+/* Phase 18.1 — restore original News Radar newspaper emblem in shared masthead. */
+.nr-global-brand-logo {width:46px;height:46px;object-fit:contain;display:block;flex:0 0 auto;border-radius:10px}
+.nr-global-brand-wordmark{line-height:1.2}
+.nr-localized-label{font:700 9px/1.5 var(--nr-sans);letter-spacing:0;color:#375946;text-transform:none;margin-left:8px}
+@media(max-width:720px){
+  .nr-global-brand-logo{width:39px;height:39px}
+  .nr-global-brand{gap:9px}
+}

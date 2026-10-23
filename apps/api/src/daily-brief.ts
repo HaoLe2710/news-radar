@@ -1,3 +1,4 @@
+import { localizationMap, applyLocalization } from "./localization";
 export interface BriefEnv {
   DB: D1Database;
   AI?: Ai;
@@ -41,10 +42,12 @@ export async function readBrief(env: BriefEnv, date: string) {
     throw error;
   }
   if (!saved) return null;
+  const originalArticles=JSON.parse(saved.articles_json) as BriefArticle[];
+  const map=await localizationMap(env.DB,originalArticles);
   return {
     date: saved.brief_date,
     overview: saved.overview,
-    articles: JSON.parse(saved.articles_json) as BriefArticle[],
+    articles: originalArticles.map(article=>applyLocalization(article,map)),
     mode: saved.generation_mode,
     createdAt: saved.created_at,
   };

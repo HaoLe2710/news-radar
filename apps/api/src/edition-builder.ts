@@ -4,6 +4,8 @@ export type EditionArticle = {
   editorialSummary?: string;
   editorialScore?: number;
   relatedSources?: { title: string; url: string; source: string }[];
+  titleVi?: string;
+  summaryVi?: string;
   title: string;
   url: string;
   summary: string | null;

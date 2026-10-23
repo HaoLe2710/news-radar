@@ -1,3 +1,4 @@
+import { localizationMap, applyLocalization } from "./localization";
 import { chooseEditorialCandidates, generateEditorial } from "./editorial-engine";
 import { groupRelatedStories } from "./story-groups";
 import { composeEdition, coverageWindow, type EditionArticle, type NewspaperEdition } from "./edition-builder";
@@ -8,11 +9,23 @@ function validDate(input: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input)) return false;
   try { coverageWindow(input); return true; } catch { return false; }
 }
+async function localizedEdition(env:EditionEnv, edition:NewspaperEdition):Promise<NewspaperEdition> {
+  const articles = [edition.lead,...edition.secondary,...edition.briefs,...edition.radarPool];
+  const map = await localizationMap(env.DB,articles);
+  if(!map.size)return edition;
+  return {
+    ...edition,
+    lead:applyLocalization(edition.lead,map),
+    secondary:edition.secondary.map(article=>applyLocalization(article,map)),
+    briefs:edition.briefs.map(article=>applyLocalization(article,map)),
+    radarPool:edition.radarPool.map(article=>applyLocalization(article,map)),
+  };
+}
 export async function readEdition(env: EditionEnv, date: string): Promise<NewspaperEdition | null> {
   if (!validDate(date)) return null;
   try {
     const row = await env.DB.prepare("SELECT payload_json FROM newspaper_editions WHERE issue_date = ?").bind(date).first<{payload_json:string}>();
-    return row ? JSON.parse(row.payload_json) as NewspaperEdition : null;
+    return row ? localizedEdition(env,JSON.parse(row.payload_json) as NewspaperEdition) : null;
   } catch(error) {
     if(String(error).includes("no such table: newspaper_editions")) return null;
     throw error;
@@ -54,7 +67,7 @@ export async function createEdition(env: EditionEnv, issueDate = currentVietnamD
 export async function latestEdition(env: EditionEnv): Promise<NewspaperEdition | null> {
   try {
     const row = await env.DB.prepare("SELECT payload_json FROM newspaper_editions ORDER BY issue_date DESC LIMIT 1").first<{payload_json:string}>();
-    return row ? JSON.parse(row.payload_json) as NewspaperEdition : null;
+    return row ? localizedEdition(env,JSON.parse(row.payload_json) as NewspaperEdition) : null;
   } catch(error) {
     if(String(error).includes("no such table: newspaper_editions")) return null;
     throw error;

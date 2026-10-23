@@ -1,3 +1,4 @@
+import { localizePendingArticles } from "./localization";
 import { cleanupAskRateLimits, handleAskApi } from "./ask-news";
 import { deliverPublishedNotifications, handlePushApi } from "./push-notifications";
 import { createWeeklyMagazine, latestWeeklyMagazine, listWeeklyMagazines, readWeeklyMagazine } from "./weekly-magazines";
@@ -353,6 +354,7 @@ export default {
       const where = `FROM articles a
         JOIN news_sources s ON a.source_id = s.id
         JOIN categories c ON s.category_id = c.id
+        LEFT JOIN article_localizations l ON l.article_id = a.id AND l.status = 'translated'
         WHERE (? = 'all' OR s.region = ?)
           AND (? = 'all' OR c.slug = ?)
           AND (? = '' OR INSTR(LOWER(a.title), LOWER(?)) > 0
@@ -364,7 +366,7 @@ export default {
         env.DB.prepare(`SELECT COUNT(*) AS total ${where}`)
           .bind(...args).first<{ total: number }>(),
         env.DB.prepare(`SELECT
-          a.id, a.title, a.url, a.summary, a.image_url,
+          a.id, a.title, a.url, a.summary, l.title_vi AS titleVi, l.summary_vi AS summaryVi, a.image_url,
           a.published_at, s.name AS source, s.region, c.slug AS category
           ${where}
           ORDER BY COALESCE(a.published_at, a.created_at) DESC, a.id DESC
@@ -392,6 +394,13 @@ export default {
     env: AppEnv
   ): Promise<void> {
     await ingestNews(env);
+    try {
+      const localization = await localizePendingArticles(env);
+      console.log("English RSS localized:", localization.translated, "/", localization.attempted);
+    } catch (error) {
+      // Translation is enrichment, never a reason to block news publication.
+      console.warn("RSS localization skipped", error);
+    }
     await createDailyBrief(env);
     await createEdition(env);
     await createWeeklyMagazine(env);
