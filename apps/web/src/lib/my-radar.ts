@@ -15,8 +15,8 @@ export type RadarArticle = {
   editorialSummary?: string;
   editorialScore?: number;
   relatedSources?: { title: string; source: string; url: string }[];
-  titleVi?: string;
-  summaryVi?: string;
+  titleVi?: string | null;
+  summaryVi?: string | null;
   title: string;
   summary: string | null;
   url: string;
