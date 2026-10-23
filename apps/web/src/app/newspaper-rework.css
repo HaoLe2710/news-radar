@@ -236,3 +236,13 @@ a,button { -webkit-tap-highlight-color: transparent; }
  .wm-week-review-grid h3 {font-size:12px}
  .wm-week-review-grid p {font-size:10px}
 }
+
+
+/* No-image layouts still use the entire newspaper column instead of empty image whitespace. */
+.nr-report:first-child:not(:has(.nr-report-picture)),.wm-article:first-child:not(:has(.wm-article-figure)) {display:block}
+.nr-report:first-child:not(:has(.nr-report-picture)) .nr-article-body,
+.wm-article:first-child:not(:has(.wm-article-figure)) .wm-article-body {columns:2;column-gap:20px}
+@media(max-width:720px) {
+  .nr-report:first-child:not(:has(.nr-report-picture)) .nr-article-body,
+  .wm-article:first-child:not(:has(.wm-article-figure)) .wm-article-body {columns:1}
+}
