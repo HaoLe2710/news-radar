@@ -1,8 +1,24 @@
 import type { Metadata } from "next";
+import { Be_Vietnam_Pro, Noto_Serif } from "next/font/google";
 import "./globals.css";
 import "./newspaper-rework.css";
 import SiteNavbar from "../components/SiteNavbar";
 import PWARegister from "../components/PWARegister";
+
+// Explicitly build both Latin and Vietnamese glyph subsets into the exported web app.
+// Self-hosted Next.js fonts avoid browser-dependent Georgia fallback and external font blocking.
+const uiFont = Be_Vietnam_Pro({
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+  variable: "--font-news-sans",
+});
+const paperFont = Noto_Serif({
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  display: "swap",
+  variable: "--font-news-serif",
+});
 
 export const metadata: Metadata = {
   title: "News Radar | Bản tin Việt Nam & Thế giới",
@@ -16,12 +32,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="vi">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com"/>
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous"/>
-        <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Noto+Serif:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
-      </head>
-      <body><PWARegister/><SiteNavbar/>{children}</body>
+      <body className={`${uiFont.variable} ${paperFont.variable}`}><PWARegister/><SiteNavbar/>{children}</body>
     </html>
   );
 }

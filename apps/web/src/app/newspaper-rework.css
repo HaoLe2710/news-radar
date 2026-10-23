@@ -1,7 +1,7 @@
 /* PHASE 18 — Newspaper design system: Vietnamese-first, readable, newspaper-inspired. */
 :root {
-  --nr-serif: "Noto Serif", "Times New Roman", Georgia, serif;
-  --nr-sans: "Be Vietnam Pro", "Segoe UI", Arial, sans-serif;
+  --nr-serif: var(--font-news-serif), "Noto Serif", "Times New Roman", serif;
+  --nr-sans: var(--font-news-sans), "Be Vietnam Pro", "Segoe UI", Arial, sans-serif;
   --nr-newsprint: #faf7ed;
   --nr-line: #b7aea0;
   --nr-red: #a33727;
@@ -245,4 +245,69 @@ a,button { -webkit-tap-highlight-color: transparent; }
 @media(max-width:720px) {
   .nr-report:first-child:not(:has(.nr-report-picture)) .nr-article-body,
   .wm-article:first-child:not(:has(.wm-article-figure)) .wm-article-body {columns:1}
+}
+
+
+/* Vietnamese glyph rendering hotfix: Phase 18 legacy homepage selectors still forced
+   Georgia, negative tracking, and tightly packed headline line boxes. */
+.site-shell .news-card h3,
+.site-shell .side-story h3,
+.site-shell .lead-story h3,
+.site-shell .radar-card h3,
+.site-shell .related-story h3,
+.site-shell .brief-intro h3,
+.site-shell .section-heading h2,
+.site-shell .intro-strip h1 {
+  font-family: var(--nr-sans) !important;
+  font-weight: 700;
+  font-synthesis: none;
+  letter-spacing: 0 !important;
+  line-height: 1.55 !important;
+  font-kerning: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
+  text-rendering: optimizeLegibility;
+}
+.site-shell .news-card h3 {font-size: clamp(18px, 1.4vw, 20px);margin:6px 0 14px}
+.site-shell .news-card h3 a {display:inline;white-space:normal}
+.site-shell .side-story h3 {font-size:clamp(18px,1.55vw,23px)}
+.site-shell .lead-story h3 {font-size:clamp(27px,3vw,41px);line-height:1.45!important}
+.site-shell .card-summary,
+.site-shell .lead-summary,
+.site-shell .side-story > p,
+.site-shell .radar-card > p,
+.site-shell .news-card > p {
+  font-family:var(--nr-sans);
+  font-size:13px;
+  line-height:1.85;
+  letter-spacing:0;
+  overflow-wrap:break-word;
+}
+.nr-sheet h1,.nr-sheet h2,.nr-sheet h3,
+.wm-page h1,.wm-page h2,.wm-page h3,
+.pe-sheet h1,.pe-sheet h2,.pe-sheet h3,
+.wm-print-sheet h1,.wm-print-sheet h2,.wm-print-sheet h3 {
+  font-family:var(--nr-serif)!important;
+  letter-spacing:0!important;
+  line-height:1.43!important;
+  font-kerning:normal;
+  font-synthesis:none;
+  overflow-wrap:break-word;
+  word-break:normal;
+}
+.nr-sheet p,.wm-page p,.pe-sheet p,.wm-print-sheet p {
+  letter-spacing:0;
+  font-kerning:normal;
+}
+@media(max-width:720px) {
+  .site-shell .news-card h3{font-size:19px;line-height:1.6!important}
+  .site-shell .lead-story h3{font-size:27px}
+  .site-shell .news-card .card-summary{font-size:14px;line-height:1.85}
+}
+@media print {
+  /* Print remains readable with both Latin and Vietnamese fonts embedded. */
+  .nr-sheet h1,.nr-sheet h2,.nr-sheet h3,
+  .wm-page h1,.wm-page h2,.wm-page h3,
+  .pe-sheet h1,.pe-sheet h2,.pe-sheet h3{letter-spacing:0!important}
 }

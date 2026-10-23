@@ -8,8 +8,11 @@ const read = path => readFileSync(new URL(path,root),"utf8");
 test("Vietnamese-safe serif and sans fonts have offline fallbacks",()=>{
   const layout=read("app/layout.tsx");
   const theme=read("app/newspaper-rework.css");
-  assert.match(layout,/Be\+Vietnam\+Pro/);
-  assert.match(layout,/Noto\+Serif/);
+  assert.match(layout,/Be_Vietnam_Pro/);
+  assert.match(layout,/Noto_Serif/);
+  assert.match(layout,/subsets:\s*\["latin",\s*"vietnamese"\]/);
+  assert.match(layout,/--font-news-sans/);
+  assert.match(layout,/--font-news-serif/);
   assert.match(theme,/--nr-serif:[^;]+"Times New Roman"/);
   assert.match(theme,/--nr-sans:[^;]+"Segoe UI"/);
   assert.match(layout,/<SiteNavbar\/>/);
@@ -56,4 +59,20 @@ test("paper layouts retain multi-column reading and collapse for mobile",()=>{
   assert.match(css,/\.wm-articles\s*\{[^}]*grid-template-columns:repeat\(2/);
   assert.match(css,/@media\s*\(max-width:720px\)/);
   assert.match(css,/@media print/);
+});
+
+test("every homepage headline overrides legacy Georgia and removes negative letter spacing",()=>{
+  const css=read("app/newspaper-rework.css");
+  for(const kind of ["news-card","side-story","lead-story","radar-card","related-story"]){
+    assert.ok(css.includes(".site-shell ."+kind+" h3"),"missing targeted override for "+kind);
+  }
+  assert.match(css,/letter-spacing:\s*0\s*!important/);
+  assert.match(css,/line-height:\s*1\.55\s*!important/);
+  assert.match(css,/font-family:\s*var\(--nr-sans\)\s*!important/);
+});
+test("font rendering never requires external Google Fonts at runtime",()=>{
+  const layout=read("app/layout.tsx");
+  assert.doesNotMatch(layout,/fonts\.googleapis\.com|fonts\.gstatic\.com/);
+  assert.match(layout,/uiFont\.variable/);
+  assert.match(layout,/paperFont\.variable/);
 });
