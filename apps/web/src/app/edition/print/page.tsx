@@ -1,3 +1,4 @@
+import { newsTitle, newsSummary, isTranslated } from "../../lib/localized-news";
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -28,11 +29,11 @@ function Source({ article }: { article: EditionArticle }) {
 function PrintArticle({ article, order }: { article: EditionArticle; order: number }) {
   return <article className="pe-news-article">
     <span className="pe-kicker">{String(order).padStart(2, "0")} / {CATEGORIES[article.category] ?? "Tin tức"}</span>
-    <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
+    <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{newsTitle(article)}</a></h3>
     <div className="pe-kicker">{article.source} · Nguồn RSS</div>
     {article.image_url ? <img className="pe-print-image" src={article.image_url} alt={"Hình minh họa từ " + article.source} loading="lazy" onError={e=>{e.currentTarget.style.display="none";}}/> : null}
-    <p>{article.editorialSummary || article.summary || "Bản lưu chưa có đoạn mô tả RSS."}</p>
-    <small className="pe-ai-note">{article.editorialSummary ? "AI tóm lược từ RSS" : "Đoạn trích mô tả RSS"} · không phải toàn văn bài báo</small>
+    <p>{newsSummary(article) || "Bản lưu chưa có đoạn mô tả RSS."}</p>
+    <small className="pe-ai-note">{isTranslated(article) ? "Bản dịch tiếng Việt bởi AI từ RSS" : article.editorialSummary ? "AI tóm lược từ RSS" : "Đoạn trích mô tả RSS"} · không phải toàn văn bài báo</small>
     {article.editorialSummary ? <small className="pe-ai-note">AI tóm lược từ RSS; vui lòng kiểm tra nguồn gốc.</small> : null}
     {article.relatedSources?.length ? <div className="pe-related"><strong>Nguồn liên quan:</strong> {article.relatedSources.map((s) => <a key={s.url} href={s.url} target="_blank" rel="noopener noreferrer">{s.source} ↗</a>)}</div> : null}
     <Source article={article}/>
@@ -50,10 +51,10 @@ function PrintPage({ page, edition }: { page: EditionPage; edition: NewspaperEdi
     <div className="pe-cover-columns">
       <div className="pe-lead">
         <span className="pe-kicker">TRANG NHẤT / BÀI ĐÁNG CHÚ Ý</span>
-        <h1><a href={edition.lead.url} target="_blank" rel="noopener noreferrer">{edition.lead.title}</a></h1>
+        <h1><a href={edition.lead.url} target="_blank" rel="noopener noreferrer">{newsTitle(edition.lead)}</a></h1>
         {edition.lead.image_url ? <img className="pe-cover-photo" src={edition.lead.image_url} alt=""
           onError={(event) => { event.currentTarget.style.display = "none"; }}/> : null}
-        <p>{edition.lead.editorialSummary || edition.lead.summary || "Mở bài báo gốc để đọc đầy đủ thông tin."}</p>
+        <p>{newsSummary(edition.lead) || "Mở bài báo gốc để đọc đầy đủ thông tin."}</p>
         {edition.lead.editorialSummary ? <small className="pe-ai-note">AI tóm lược từ RSS · tham khảo nguồn gốc.</small> : null}
         {edition.lead.relatedSources?.length ? <div className="pe-related"><strong>Nguồn liên quan:</strong> {edition.lead.relatedSources.map((s) => <a key={s.url} href={s.url} target="_blank" rel="noopener noreferrer">{s.source} ↗</a>)}</div> : null}
         <Source article={edition.lead}/>
@@ -71,8 +72,8 @@ function PrintPage({ page, edition }: { page: EditionPage; edition: NewspaperEdi
     {edition.secondary?.length ? <div className="pe-cover-teasers">
       {edition.secondary.slice(0,2).map(article=><article key={article.id}>
         <span className="pe-kicker">{CATEGORIES[article.category] ?? "Tin tức"}</span>
-        <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
-        {article.summary ? <p>{article.summary}</p> : null}
+        <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{newsTitle(article)}</a></h3>
+        {newsSummary(article) ? <p>{newsSummary(article)}</p> : null}
         <Source article={article}/>
       </article>)}
     </div> : null}
@@ -93,8 +94,8 @@ function PrintPage({ page, edition }: { page: EditionPage; edition: NewspaperEdi
     <div className="pe-brief-columns">
       {page.articles.map((article, index) => <div className="pe-brief" key={article.id}>
         <span className="pe-brief-number">{String(index + 1).padStart(2, "0")}</span>
-        <div><h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
-          <p>{article.editorialSummary || article.summary || "Bản lưu chưa có mô tả RSS."}</p><Source article={article}/></div>
+        <div><h3><a href={article.url} target="_blank" rel="noopener noreferrer">{newsTitle(article)}</a></h3>
+          <p>{newsSummary(article) || "Bản lưu chưa có mô tả RSS."}</p><Source article={article}/></div>
       </div>)}
     </div>
   </>;
@@ -107,8 +108,8 @@ function PrintPage({ page, edition }: { page: EditionPage; edition: NewspaperEdi
       : page.articles.length === 0 ? <p className="pe-empty">Số báo này chưa có tin trùng với chủ đề đã chọn.</p>
       : <div className="pe-personal-grid">{page.articles.map(({ article, topic }) => <article key={article.id}>
         <span className="pe-kicker">{RADAR_TOPICS.find((item) => item.id === topic)?.label ?? topic} · {article.source}</span>
-        <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
-        <p>{article.editorialSummary || article.summary || "Mở bài báo gốc để biết chi tiết."}</p>
+        <h3><a href={article.url} target="_blank" rel="noopener noreferrer">{newsTitle(article)}</a></h3>
+        <p>{newsSummary(article) || "Mở bài báo gốc để biết chi tiết."}</p>
         <Source article={article}/>
       </article>)}</div>}
   </>;
@@ -188,7 +189,7 @@ export default function PrintEditionPage() {
               <p className="pe-section-intro">Liên kết sau dẫn tới trang gốc của các nhà xuất bản. News Radar chỉ biên tập tiêu đề và mô tả RSS, không sao chép toàn văn bài viết.</p>
               <ol className="pe-sources-list">
                 {sources.map((article) => <li key={article.url}>
-                  <strong>{article.title}</strong>
+                  <strong>{newsTitle(article)}</strong>
                   <span>{article.source}</span>
                   <a href={article.url} target="_blank" rel="noopener noreferrer">{article.url}</a>
                 </li>)}
