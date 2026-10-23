@@ -90,3 +90,41 @@ jobs:
           done
           echo "::error::Vietnamese font bundle is not yet being served in Production."
           exit 1
+
+      - name: Verify restored News Radar logo and localized world-news API
+        if: github.event_name == 'push'
+        env:
+          SITE: https://news-radar-9px.pages.dev
+          API: https://new-radar-api.lengochao123-27102004.workers.dev
+        run: |
+          node --input-type=module <<'NODE'
+          const site=process.env.SITE,api=process.env.API;
+          let verified=false;
+          for(let attempt=1;attempt<=20;attempt++){
+            try{
+              const [page,news,logo]=await Promise.all([
+                fetch(site+"/",{cache:"no-store",signal:AbortSignal.timeout(10000)}),
+                fetch(api+"/api/news?region=world&pageSize=1",{cache:"no-store",signal:AbortSignal.timeout(10000)}),
+                fetch(site+"/icon.svg",{signal:AbortSignal.timeout(10000)})
+              ]);
+              if(!page.ok||!news.ok||!logo.ok)throw Error("Pages or world-news endpoint not reachable");
+              const html=await page.text();
+              if(!html.includes('nr-global-brand-logo')||!html.includes('/icon.svg'))throw Error("Restored News Radar logo not rendered in site navigation");
+              const body=await news.json();
+              if(!Array.isArray(body.data))throw Error("World-news API must return data array");
+              if(body.data.length){
+                const article=body.data[0];
+                if(!Object.hasOwn(article,"titleVi")||!Object.hasOwn(article,"summaryVi"))
+                  throw Error("Localization columns not visible in live world-news API");
+                if(typeof article.title!=="string"||typeof article.url!=="string")
+                  throw Error("Original English RSS fields must remain available");
+              }
+              console.log("Production verified: original News Radar emblem, world-news API and bilingual fields; translated entries may populate on hourly cron.");
+              verified=true;break;
+            }catch(error){
+              console.log("Attempt "+attempt+": "+error.message);
+              if(attempt<20)await new Promise(resolve=>setTimeout(resolve,15000));
+            }
+          }
+          if(!verified)process.exitCode=1;
+          NODE
